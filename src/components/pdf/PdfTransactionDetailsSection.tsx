@@ -4,58 +4,105 @@ interface PdfTransactionDetailsSectionProps {
 }
 
 export default function PdfTransactionDetailsSection({ statement, formatCurrency }: PdfTransactionDetailsSectionProps) {
-  // API verilerinin yapısını kontrol edelim
-  const storedCardData = statement?.storedCardTransactions || { count: 0, volume: 0, commission: 0, netAmount: 0 };
-  const refundData = statement?.refundTransactions || { volume: 0, commission: 0, netAmount: 0 };
+  // Storedcard ve iade verilerini alalım
+  const storedCardData = statement?.storedCardTransactions || { count: 0, volume: 0, commission: 0 };
+  const refundCount = storedCardData.refundCount || 0;
+  const refundVolume = storedCardData.refundVolume || 0;
+  
+  // İade komisyonu hesaplama (BSMV dahil)
+  const refundCommissionRate = parseFloat(statement.merchant.storedCardCommission?.replace('%', '').replace(',', '.')) / 100 || 0;
+  const refundCommission = refundVolume * refundCommissionRate;
+  
+  // Net tutarları hesaplama (BSMV zaten dahil)
+  const storedCardNetAmount = storedCardData.volume - storedCardData.commission;
+  const refundNetAmount = refundVolume - refundCommission;
+  
+  // Toplam değerler
+  const totalCount = storedCardData.count - refundCount;
+  const totalVolume = storedCardData.volume - refundVolume;
+  const totalCommission = storedCardData.commission - refundCommission;
+  const totalNetAmount = totalVolume - totalCommission;
 
   return (
     <div className="mb-8">
-      <h2 className="text-sm font-semibold text-gray-800 mb-3 border-b-2 border-blue-500 pb-2">İşlem Detayları</h2>
+      <h2 className="text-sm font-semibold text-gray-800 mb-3 border-b-2 border-blue-500 pb-2">İŞLEM ÖZETİ</h2>
       
-      {/* Saklı Kart İşlemleri - Sadece saklı kart işlemlerini göster */}
-      <div className="mb-4">
-        <h3 className="text-xs font-medium text-green-700 mb-2 pl-1 border-l-3 border-green-400">Saklı Kart İşlemleri</h3>
-        <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
-          <thead className="bg-green-50">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium text-green-700">İşlem Adedi</th>
-              <th className="px-3 py-2 text-left font-medium text-green-700">Toplam Tutar</th>
-              <th className="px-3 py-2 text-left font-medium text-green-700">Komisyon</th>
-              <th className="px-3 py-2 text-left font-medium text-green-700">Net Tutar</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="hover:bg-gray-50">
-              <td className="px-3 py-2 border-b">{storedCardData.count}</td>
-              <td className="px-3 py-2 border-b">{formatCurrency(storedCardData.volume)}</td>
-              <td className="px-3 py-2 border-b">{formatCurrency(storedCardData.commission)}</td>
-              <td className="px-3 py-2 border-b font-medium">{formatCurrency(storedCardData.netAmount)}</td>
-            </tr>
-          </tbody>
-        </table>
+      <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden mb-4 shadow-sm">
+        <thead className="bg-gray-100 text-gray-700">
+          <tr>
+            <th className="px-3 py-2 text-left font-medium">İşlem Tipi</th>
+            <th className="px-3 py-2 text-left font-medium">İşlem Adedi</th>
+            <th className="px-3 py-2 text-left font-medium">Toplam Tutar</th>
+            <th className="px-3 py-2 text-left font-medium">Komisyon</th>
+            <th className="px-3 py-2 text-left font-medium">Net Tutar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Saklı Kart İşlemleri */}
+          <tr className="hover:bg-gray-50">
+            <td className="px-3 py-2 border-b font-medium">Saklı Kart</td>
+            <td className="px-3 py-2 border-b">{storedCardData.count}</td>
+            <td className="px-3 py-2 border-b text-green-600">{formatCurrency(storedCardData.volume)}</td>
+            <td className="px-3 py-2 border-b text-blue-600">{formatCurrency(storedCardData.commission)}</td>
+            <td className="px-3 py-2 border-b text-green-600">{formatCurrency(storedCardNetAmount)}</td>
+          </tr>
+          
+          {/* İade İşlemleri */}
+          <tr className="hover:bg-gray-50">
+            <td className="px-3 py-2 border-b font-medium">İade</td>
+            <td className="px-3 py-2 border-b">{refundCount}</td>
+            <td className="px-3 py-2 border-b text-red-600">{formatCurrency(-refundVolume)}</td>
+            <td className="px-3 py-2 border-b text-red-600">{formatCurrency(-refundCommission)}</td>
+            <td className="px-3 py-2 border-b text-red-600">{formatCurrency(-refundNetAmount)}</td>
+          </tr>
+          
+          {/* Toplam Satırı */}
+          <tr className="bg-gray-50 font-medium">
+            <td className="px-3 py-2 border-b">Toplam</td>
+            <td className="px-3 py-2 border-b">{totalCount}</td>
+            <td className="px-3 py-2 border-b">{formatCurrency(totalVolume)}</td>
+            <td className="px-3 py-2 border-b text-blue-700">{formatCurrency(totalCommission)}</td>
+            <td className="px-3 py-2 border-b text-green-700">{formatCurrency(totalNetAmount)}</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      {/* Diğer Ücretler Bölümü */}
+      {(statement.packageFee > 0 || statement.otherFees > 0) && (
+        <div className="border border-gray-200 rounded-lg p-3 mb-4">
+          <h3 className="text-xs font-medium text-gray-700 mb-2">Diğer Ücretler</h3>
+          <div className="space-y-2 text-xs">
+            {statement.packageFee > 0 && (
+              <div className="flex justify-between items-center">
+                <span>Paket Ücreti</span>
+                <span className="font-medium text-blue-600">{formatCurrency(statement.packageFee)}</span>
+              </div>
+            )}
+            {statement.otherFees > 0 && (
+              <div className="flex justify-between items-center">
+                <span>Diğer</span>
+                <span className="font-medium">{formatCurrency(statement.otherFees)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-1 border-t">
+              <span className="font-medium">Toplam</span>
+              <span className="font-medium">{formatCurrency((statement.packageFee || 0) + (statement.otherFees || 0))}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Ödenecek Toplam Tutar */}
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 shadow-sm">
+        <div className="flex justify-between items-center text-sm font-semibold">
+          <span className="text-blue-800">Ödenecek Toplam:</span>
+          <span className="text-blue-700 text-lg">{formatCurrency(totalCommission + (statement.packageFee || 0) + (statement.otherFees || 0))}</span>
+        </div>
       </div>
-
-      {/* İade İşlemleri */}
-      <div className="mb-4">
-        <h3 className="text-xs font-medium text-red-700 mb-2 pl-1 border-l-3 border-red-400">İade İşlemleri</h3>
-        <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
-          <thead className="bg-red-50">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium text-red-700">İşlem Adedi</th>
-              <th className="px-3 py-2 text-left font-medium text-red-700">Toplam Tutar</th>
-              <th className="px-3 py-2 text-left font-medium text-red-700">Komisyon İadesi</th>
-              <th className="px-3 py-2 text-left font-medium text-red-700">Net İade</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="hover:bg-gray-50">
-              <td className="px-3 py-2 border-b">{storedCardData.refundCount || 0}</td>
-              <td className="px-3 py-2 border-b text-red-600">{formatCurrency(-(refundData.volume || 0))}</td>
-              <td className="px-3 py-2 border-b">{formatCurrency(refundData.commission || 0)}</td>
-              <td className="px-3 py-2 border-b text-red-600 font-medium">{formatCurrency(-(refundData.netAmount || 0))}</td>
-            </tr>
-          </tbody>
-        </table>
+      
+      {/* Yasal Bilgi Notu */}
+      <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-200">
+        <p>Not: Yukarıda belirtilen tüm komisyon ve ücretlere %5 Banka ve Sigorta Muameleleri Vergisi (BSMV) dahildir.</p>
       </div>
     </div>
   );

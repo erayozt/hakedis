@@ -1,11 +1,10 @@
-import { X, CreditCard, ExternalLink, Download, FileText, ChevronDown, ChevronUp, CreditCard as CreditCardIcon, Wallet, DollarSign, Info } from 'lucide-react';
+import { X, CreditCard, ExternalLink, Download, FileText, ChevronDown, ChevronUp, CreditCard as CreditCardIcon, Wallet, DollarSign, Info, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import StatementPdfView from './StatementPdfView';
 import PdfHeader from './pdf/PdfHeader';
 import PdfFooter from './pdf/PdfFooter';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface StatementModalProps {
   isOpen: boolean;
@@ -21,6 +20,7 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
   const [showDetailedSummary, setShowDetailedSummary] = useState(false);
   const [isPdfViewOpen, setIsPdfViewOpen] = useState(false);
   const [isTransactionsOnlyPdfOpen, setIsTransactionsOnlyPdfOpen] = useState(false);
+  const [isPaymentInfoOpen, setIsPaymentInfoOpen] = useState(false);
   
   // Eksik olan 'openSections' state'ini ekleyelim
   const [openSections, setOpenSections] = useState<string[]>([]);
@@ -100,38 +100,6 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
     return format(new Date(dateString), 'dd MMMM yyyy', { locale: tr });
   };
   
-  // Ödeme durumu gösterimi
-  const renderPaymentStatus = () => {
-    const isPaid = statement.status === 'paid';
-    const isPending = statement.status === 'pending';
-    const isOverdue = statement.status === 'overdue' || statement.status === 'late';
-    
-    return (
-      <div className="flex items-center">
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-          isPaid 
-            ? 'bg-green-100 text-green-800' 
-            : isPending 
-              ? 'bg-yellow-100 text-yellow-800' 
-              : 'bg-red-100 text-red-800'
-        }`}>
-          {isPaid ? 'Ödendi' : isPending ? 'Bekliyor' : 'Gecikti'}
-        </span>
-        
-        {/* Ödenmemiş ekstreler için ödeme butonu */}
-        {(isPending || isOverdue) && onPayment && (
-          <button
-            onClick={handlePayment}
-            className="ml-3 flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-          >
-            <CreditCardIcon className="w-4 h-4 mr-1" />
-            Şimdi Öde
-          </button>
-        )}
-      </div>
-    );
-  };
-  
   // Toplam komisyon tutarını hesapla (BSMV dahil)
   const calculateTotalCommission = () => {
     const storedCardCommission = statement.storedCardTransactions.commission;
@@ -143,8 +111,8 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
     // Toplam komisyon (iadeler düşülmüş)
     const totalCommission = storedCardCommission - refundCommission;
     
-    // BSMV ve diğer ücretleri ekle
-    return totalCommission + statement.bsmvAmount + (statement.otherFees || 0);
+    // Toplam tutarı döndür (BSMV zaten dahil)
+    return totalCommission + (statement.otherFees || 0);
   };
   
   // Detaylı özet göster/gizle
@@ -180,18 +148,10 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                     <h3 className="font-semibold text-gray-800">Üye İşyeri Bilgileri</h3>
                   </div>
                   <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-500">Üye İşyeri Adı</p>
+                        <p className="text-sm text-gray-500">Şirket Adı</p>
                         <p className="font-medium">{statement.merchant.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Üye İşyeri No</p>
-                        <p className="font-medium">{statement.merchant.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">IBAN</p>
-                        <p className="font-medium">{statement.merchant.iban}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Ödeme Vadesi</p>
@@ -224,38 +184,64 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                     <h3 className="font-semibold text-gray-800">Ekstre Bilgileri</h3>
                   </div>
                   <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Dönem</p>
-                        <p className="font-medium">{statement.period}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Ekstre Tarihi</p>
-                        <p className="font-medium">{formatDate(statement.issueDate)}</p>
-                      </div>
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Son Ödeme Tarihi</p>
                         <p className="font-medium">{formatDate(statement.dueDate)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Ödeme Durumu</p>
-                        {renderPaymentStatus()}
+                        <div className="mt-1">
+                          {statement.status === 'paid' ? (
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Ödendi</span>
+                          ) : statement.status === 'pending' ? (
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">Bekliyor</span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Gecikti</span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Toplam İşlem Hacmi</p>
-                        <p className="font-medium">{formatCurrency(statement.storedCardTransactions.volume)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Ödenecek Komisyon</p>
-                        <p className="font-medium text-blue-600">{formatCurrency(calculateTotalCommission())}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">BSMV</p>
-                        <p className="font-medium">{formatCurrency(statement.bsmvAmount)}</p>
+                        <p className="font-medium">{formatCurrency(statement.storedCardTransactions.volume - statement.storedCardTransactions.refundVolume)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Net İşlem Tutarı</p>
-                        <p className="font-medium text-green-600">{formatCurrency(statement.storedCardTransactions.volume - calculateTotalCommission())}</p>
+                        <p className="font-medium text-green-600">{formatCurrency((statement.storedCardTransactions.volume - statement.storedCardTransactions.refundVolume) - calculateTotalCommission())}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Komisyon</p>
+                        <p className="font-medium text-blue-600">{formatCurrency(calculateTotalCommission())}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Paket Ücreti</p>
+                        <p className="font-medium text-blue-600">{formatCurrency(statement.packageFee || 0)}</p>
+                      </div>
+                      <div className="col-span-2 mt-2 pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-500">Ödenecek Toplam</p>
+                            <p className="font-medium text-lg text-blue-700">{formatCurrency(calculateTotalCommission() + (statement.packageFee || 0))}</p>
+                          </div>
+                          {statement.status !== 'paid' && (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={handlePayment}
+                                className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                              >
+                                <CreditCardIcon className="w-4 h-4 mr-1" />
+                                Kartla Öde
+                              </button>
+                              <button
+                                onClick={() => setIsPaymentInfoOpen(true)}
+                                className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                              >
+                                <FileText className="w-4 h-4 mr-1" />
+                                EFT/Havale
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -285,7 +271,6 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlem Adedi</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Toplam Tutar</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komisyon</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BSMV</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Net Tutar</th>
                           </tr>
                         </thead>
@@ -309,11 +294,8 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                             <td className="px-4 py-3 whitespace-nowrap font-medium text-blue-600">
                               {formatCurrency(statement.storedCardTransactions.commission)}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap font-medium">
-                              {formatCurrency(statement.storedCardTransactions.commission * 0.05)}
-                            </td>
                             <td className="px-4 py-3 whitespace-nowrap font-medium text-green-600">
-                              {formatCurrency(statement.storedCardTransactions.volume - statement.storedCardTransactions.commission - (statement.storedCardTransactions.commission * 0.05))}
+                              {formatCurrency(statement.storedCardTransactions.volume - statement.storedCardTransactions.commission)}
                             </td>
                           </tr>
                           
@@ -337,12 +319,8 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                               {formatCurrency(-(statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100))}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap font-medium text-red-600">
-                              {formatCurrency(-((statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100) * 0.05))}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap font-medium text-red-600">
                               {formatCurrency(-(statement.storedCardTransactions.refundVolume) + 
-                                (statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100) + 
-                                ((statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100) * 0.05))}
+                                (statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100))}
                             </td>
                           </tr>
                           
@@ -357,16 +335,12 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap font-semibold text-blue-700">
                               {formatCurrency(statement.storedCardTransactions.commission - 
-                                (statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100))}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap font-semibold">
-                              {formatCurrency(statement.bsmvAmount)}
+                               (statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100))}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap font-semibold text-green-700">
-                              {formatCurrency((statement.storedCardTransactions.volume) - 
-                                (statement.storedCardTransactions.refundVolume) - 
-                                (statement.storedCardTransactions.commission) - 
-                                statement.bsmvAmount)}
+                              {formatCurrency((statement.storedCardTransactions.volume - statement.storedCardTransactions.refundVolume) - 
+                               (statement.storedCardTransactions.commission - 
+                               (statement.storedCardTransactions.refundVolume * parseFloat(statement.merchant.storedCardCommission.replace('%', '').replace(',', '.')) / 100)))}
                             </td>
                           </tr>
                         </tbody>
@@ -489,11 +463,26 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                   )}
                   
                   {/* Diğer ücretler varsa göster */}
-                  {statement.otherFees > 0 && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Diğer Ücretler:</span>
-                        <span className="font-medium">{formatCurrency(statement.otherFees)}</span>
+                  {(statement.otherFees > 0 || statement.packageFee > 0) && (
+                    <div className="mt-4 p-3 border-t pt-3">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Diğer Ücretler</h4>
+                      <div className="space-y-2">
+                        {statement.packageFee > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Paket Ücreti</span>
+                            <span className="font-medium">{formatCurrency(statement.packageFee)}</span>
+                          </div>
+                        )}
+                        {statement.otherFees > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Diğer</span>
+                            <span className="font-medium">{formatCurrency(statement.otherFees)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center pt-1 border-t">
+                          <span className="text-sm font-medium">Toplam</span>
+                          <span className="font-medium">{formatCurrency((statement.otherFees || 0) + (statement.packageFee || 0))}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -501,9 +490,14 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
                   {/* Ödenecek toplam tutar */}
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                     <div className="flex justify-between items-center text-lg font-semibold">
-                      <span>Ödenecek Toplam Komisyon:</span>
-                      <span className="text-blue-700">{formatCurrency(calculateTotalCommission())}</span>
+                      <span>Ödenecek Toplam:</span>
+                      <span className="text-blue-700">{formatCurrency(calculateTotalCommission() + (statement.packageFee || 0))}</span>
                     </div>
+                  </div>
+                  
+                  {/* Yasal Bilgi Notu */}
+                  <div className="mt-3 text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-200">
+                    <p>Not: Yukarıda belirtilen tüm komisyon ve ücretlere %5 Banka ve Sigorta Muameleleri Vergisi (BSMV) dahildir.</p>
                   </div>
                 </div>
               </div>
@@ -689,6 +683,49 @@ export default function StatementModal({ isOpen, onClose, statement, onPayment, 
         onClose={() => setIsPdfViewOpen(false)} 
         statement={statement} 
       />
+      
+      {/* Ödeme Bilgileri Pop-up */}
+      {isPaymentInfoOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">EFT/Havale ile Ödeme Bilgileri</h3>
+              <button 
+                onClick={() => setIsPaymentInfoOpen(false)} 
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Ödenecek Tutar</p>
+                <p className="text-xl font-semibold text-blue-600">{formatCurrency(calculateTotalCommission() + (statement.packageFee || 0))}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Banka</p>
+                <p className="font-medium">Yapı Kredi Bankası</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Alıcı</p>
+                <p className="font-medium">D Ödeme Elektronik Para ve Ödeme Hizmetleri A.Ş.</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">IBAN</p>
+                <p className="font-medium select-all">{statement.merchant.iban}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Ödeme Vadesi</p>
+                <p className="font-medium">{statement.merchant.paymentTerm}</p>
+              </div>
+              <div className="mt-2 pt-2 bg-yellow-50 p-3 rounded border border-yellow-100 flex items-start">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 shrink-0" />
+                <p className="text-sm text-yellow-800">Açıklama kısmına ekstre numaranızı ({statement.id}) yazmayı unutmayınız.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

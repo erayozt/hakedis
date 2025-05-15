@@ -12,11 +12,171 @@ import * as XLSX from 'xlsx';
 // Örnek ekstre verileri - güncellenmiş
 const sampleStatements = [
   {
+    id: 'EKS-2024-02',
+    period: 'Şubat 2024',
+    issueDate: '2024-03-05',
+    dueDate: '2024-03-15',
+    totalAmount: 1825.00, // Paket ücreti + Komisyon + BSMV
+    status: 'pending',
+    merchant: {
+      id: 'M123456',
+      name: 'ABC Ticaret Ltd. Şti.',
+      iban: 'TR12 3456 7890 1234 5678 9012 34',
+      paymentTerm: 'Ertesi Gün Ödeme',
+      type: 'SME',
+      walletCommission: '%1,5', 
+      walletValor: '1 Gün',
+      storedCardCommission: '%1,2',
+      package: 'Karma Paketli Premium E-Ticaret Paketi'
+    },
+    walletTransactions: {
+      count: 420,
+      volume: 48000.00,
+      commission: 720.00,
+      earnings: 47280.00,
+      refundCount: 18,
+      refundVolume: 2000.00
+    },
+    storedCardTransactions: {
+      count: 580,
+      volume: 65000.00,
+      commission: 744.00,
+      earnings: 64220.00,
+      refundCount: 25,
+      refundVolume: 3000.00
+    },
+    bsmvAmount: 37.20, // BSMV tutarı (komisyon * 0.05), iadeler düşülmüş komisyon üzerinden
+    otherFees: 0,
+    packageFee: 250.00, // Sabit paket ücreti (BSMV dahil)
+    // Detaylı işlem listesi
+    transactionDetails: [
+      { 
+        id: 'TRX-14001', 
+        settlementId: 'STL-2024-02-01',
+        date: '2024-02-03', 
+        time: '10:15:22',
+        type: 'storedCard', 
+        amount: 320.50, 
+        commission: 3.85,
+        bsmv: 0.19,
+        netAmount: 316.46,
+        status: 'completed', 
+        description: 'Saklı Kart Ödemesi' 
+      },
+      { 
+        id: 'TRX-14002', 
+        settlementId: 'STL-2024-02-01',
+        date: '2024-02-03', 
+        time: '11:42:45',
+        type: 'wallet', 
+        amount: 245.75, 
+        commission: 3.69,
+        bsmv: 0.18,
+        netAmount: 241.88,
+        status: 'completed', 
+        description: 'Cüzdan Ödemesi' 
+      },
+      { 
+        id: 'TRX-14003', 
+        settlementId: 'STL-2024-02-02',
+        date: '2024-02-10', 
+        time: '14:23:11',
+        type: 'storedCard', 
+        amount: 189.90, 
+        commission: 2.28,
+        bsmv: 0.11,
+        netAmount: 187.51,
+        status: 'refunded', 
+        description: 'Saklı Kart İadesi' 
+      }
+    ]
+  },
+  {
+    id: 'EKS-2024-01',
+    period: 'Ocak 2024',
+    issueDate: '2024-02-05',
+    dueDate: '2024-02-15',
+    totalAmount: 350.00, // Sadece paket ücreti
+    status: 'pending',
+    merchant: {
+      id: 'M123456',
+      name: 'ABC Ticaret Ltd. Şti.',
+      iban: 'TR12 3456 7890 1234 5678 9012 34',
+      paymentTerm: 'Ertesi Gün Ödeme',
+      type: 'SME',
+      walletCommission: '%0', 
+      walletValor: '1 Gün',
+      storedCardCommission: '%0',
+      package: 'Sabit Ücretli Premium E-Ticaret Paketi'
+    },
+    walletTransactions: {
+      count: 320,
+      volume: 32000.00,
+      commission: 0,
+      earnings: 32000.00,
+      refundCount: 15,
+      refundVolume: 1500.00
+    },
+    storedCardTransactions: {
+      count: 450,
+      volume: 45000.00,
+      commission: 0,
+      earnings: 45000.00,
+      refundCount: 20,
+      refundVolume: 2000.00
+    },
+    bsmvAmount: 0, // BSMV 0 çünkü komisyon 0
+    otherFees: 0,
+    packageFee: 350.00, // Sabit paket ücreti (BSMV dahil)
+    // Detaylı işlem listesi
+    transactionDetails: [
+      { 
+        id: 'TRX-13345', 
+        settlementId: 'STL-2024-01-01',
+        date: '2024-01-05', 
+        time: '09:15:22',
+        type: 'storedCard', 
+        amount: 230.50, 
+        commission: 0,
+        bsmv: 0,
+        netAmount: 230.50,
+        status: 'completed', 
+        description: 'Saklı Kart Ödemesi' 
+      },
+      { 
+        id: 'TRX-13346', 
+        settlementId: 'STL-2024-01-01',
+        date: '2024-01-05', 
+        time: '12:42:45',
+        type: 'wallet', 
+        amount: 175.75, 
+        commission: 0,
+        bsmv: 0,
+        netAmount: 175.75,
+        status: 'completed', 
+        description: 'Cüzdan Ödemesi' 
+      },
+      { 
+        id: 'TRX-13347', 
+        settlementId: 'STL-2024-01-02',
+        date: '2024-01-10', 
+        time: '14:23:11',
+        type: 'storedCard', 
+        amount: 129.90, 
+        commission: 0,
+        bsmv: 0,
+        netAmount: 129.90,
+        status: 'refunded', 
+        description: 'Saklı Kart İadesi' 
+      }
+    ]
+  },
+  {
     id: 'EKS-2023-12',
     period: 'Aralık 2023',
     issueDate: '2024-01-05',
     dueDate: '2024-01-15',
-    totalAmount: 4250.75,
+    totalAmount: 4187.50,
     status: 'paid',
     merchant: {
       id: 'M123456',
@@ -46,7 +206,7 @@ const sampleStatements = [
       refundVolume: 2800.00
     },
     bsmvAmount: 209.38,
-    otherFees: 63.25,
+    otherFees: 0,
     // Detaylı işlem listesi
     transactionDetails: [
       { 
@@ -486,25 +646,9 @@ export default function Statements() {
     // Simüle edilmiş veri yükleme
     setTimeout(() => {
       try {
-        // mockDataService'den veri almayı deneyelim
-        let data;
-        try {
-          data = mockDataService.getMerchantStatements('M123456');
-          console.log("mockDataService'den alınan veriler:", data);
-        } catch (error) {
-          console.error("mockDataService hatası:", error);
-          // Eğer mockDataService çalışmazsa, örnek verileri kullanalım
-          data = sampleStatements;
-          console.log("Örnek veriler kullanılıyor:", data);
-        }
-        
-        // Veri boş mu kontrol edelim
-        if (!data || data.length === 0) {
-          console.log("Veri bulunamadı, örnek veriler kullanılıyor");
-          data = sampleStatements;
-        }
-        
-        setStatements(data);
+        // Doğrudan örnek verileri kullan
+        setStatements(sampleStatements);
+        console.log("Örnek veriler kullanılıyor:", sampleStatements);
         setIsLoading(false);
       } catch (error) {
         console.error("Veri yükleme hatası:", error);
