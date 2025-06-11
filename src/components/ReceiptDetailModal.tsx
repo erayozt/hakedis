@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import hepsipayLogo from '../assets/hepsipay-logo.png';
 import { formatCurrency } from '../utils/format';
+import ReceiptPdfView from './ReceiptPdfView';
 
 interface ReceiptDetailModalProps {
   isOpen: boolean;
@@ -114,6 +115,9 @@ export default function ReceiptDetailModal({ isOpen, onClose, receipt }: Receipt
   const [modalTitle, setModalTitle] = useState('');
   const [transactions, setTransactions] = useState<any[]>([]);
   
+  // PDF görüntüleme için state'ler
+  const [isPdfViewOpen, setIsPdfViewOpen] = useState(false);
+  
   if (!isOpen || !receipt) {
     return null;
   }
@@ -134,8 +138,8 @@ export default function ReceiptDetailModal({ isOpen, onClose, receipt }: Receipt
   
   // İndirme işlemi (PDF olarak)
   const handleDownload = () => {
-    console.log('Dekont indiriliyor:', receipt.id);
-    // PDF indirme işlemi burada gerçekleştirilecek
+    console.log('Dekont PDF görüntüleniyor:', receipt.id);
+    setIsPdfViewOpen(true);
   };
   
   // Cüzdan işlemleri hesaplamaları
@@ -529,6 +533,13 @@ export default function ReceiptDetailModal({ isOpen, onClose, receipt }: Receipt
         transactions={transactions}
         title={modalTitle}
         isRefund={true}
+      />
+      
+      {/* PDF Görüntüleme Bileşeni */}
+      <ReceiptPdfView 
+        isOpen={isPdfViewOpen} 
+        onClose={() => setIsPdfViewOpen(false)} 
+        receipt={receipt} 
       />
       
       {/* Print Styles */}

@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Search, FileText, Download, ChevronLeft, ChevronRight, Filter, Calendar, CreditCard, Hash } from 'lucide-react';
 import ReceiptDetailModal from '../../components/ReceiptDetailModal';
+import ReceiptPdfView from '../../components/ReceiptPdfView';
 
 export default function Receipts() {
   const [isLoading, setIsLoading] = useState(true);
@@ -10,6 +11,10 @@ export default function Receipts() {
   const [filteredReceipts, setFilteredReceipts] = useState<any[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // PDF görüntüleme için state'ler
+  const [isPdfViewOpen, setIsPdfViewOpen] = useState(false);
+  const [pdfReceipt, setPdfReceipt] = useState<any>(null);
   
   // Filtreleme state'leri
   const [idFilter, setIdFilter] = useState('');
@@ -132,6 +137,12 @@ export default function Receipts() {
   const handleViewReceipt = (receipt: any) => {
     setSelectedReceipt(receipt);
     setIsModalOpen(true);
+  };
+
+  // PDF indirme işlemi
+  const handleDownloadPdf = (receipt: any) => {
+    setPdfReceipt(receipt);
+    setIsPdfViewOpen(true);
   };
 
   // Para birimini formatlama
@@ -511,6 +522,7 @@ export default function Receipts() {
                           <FileText className="h-5 w-5" />
                         </button>
                         <button
+                          onClick={() => handleDownloadPdf(receipt)}
                           className="text-green-600 hover:text-green-900"
                         >
                           <Download className="h-5 w-5" />
@@ -550,6 +562,13 @@ export default function Receipts() {
           receipt={selectedReceipt}
         />
       )}
+      
+      {/* PDF Görüntüleme Bileşeni */}
+      <ReceiptPdfView 
+        isOpen={isPdfViewOpen} 
+        onClose={() => setIsPdfViewOpen(false)} 
+        receipt={pdfReceipt} 
+      />
     </div>
   );
 } 
