@@ -22,18 +22,22 @@ export default function PdfMetricsSection({ statement, formatCurrency }: PdfMetr
               <table className="min-w-full border border-gray-200 rounded-md overflow-hidden text-xs">
                 <thead className="bg-teal-50">
                   <tr>
-                    <th className="px-3 py-1.5 text-left font-medium text-teal-700">Toplam:</th>
+                    <th className="px-3 py-1.5 text-left font-medium text-teal-700">Tip</th>
                     <th className="px-3 py-1.5 text-right font-medium text-teal-700">Değer</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="hover:bg-gray-50">
                     <td className="px-3 py-1.5 border-b">Toplam:</td>
-                    <td className="px-3 py-1.5 font-medium border-b text-right">{formatCurrency(statement.hpProductTransactions?.totalVolume || 0)}</td>
+                    <td className="px-3 py-1.5 font-medium border-b text-right">{formatCurrency(0)}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-3 py-1.5">Kayıtlı Kart:</td>
-                    <td className="px-3 py-1.5 font-medium text-right">{formatCurrency(statement.storedCardTransactions.volume)}</td>
+                    <td className="px-3 py-1.5 border-b">Hepsipay Kullanıcısı:</td>
+                    <td className="px-3 py-1.5 font-medium border-b text-right">{formatCurrency(0)}</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-3 py-1.5">Diğer Kullanıcılar:</td>
+                    <td className="px-3 py-1.5 font-medium text-right">{formatCurrency(0)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -51,11 +55,15 @@ export default function PdfMetricsSection({ statement, formatCurrency }: PdfMetr
                 <tbody>
                   <tr className="hover:bg-gray-50">
                     <td className="px-3 py-1.5 border-b">Toplam:</td>
-                    <td className="px-3 py-1.5 font-medium border-b text-right">{(statement.hpProductTransactions?.totalCount || 0).toLocaleString()}</td>
+                    <td className="px-3 py-1.5 font-medium border-b text-right">0</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-3 py-1.5">Kayıtlı Kart:</td>
-                    <td className="px-3 py-1.5 font-medium text-right">{statement.storedCardTransactions.count.toLocaleString()}</td>
+                    <td className="px-3 py-1.5 border-b">Hepsipay Kullanıcısı:</td>
+                    <td className="px-3 py-1.5 font-medium border-b text-right">0</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-3 py-1.5">Diğer Kullanıcılar:</td>
+                    <td className="px-3 py-1.5 font-medium text-right">0</td>
                   </tr>
                 </tbody>
               </table>
