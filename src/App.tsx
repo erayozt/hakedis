@@ -11,6 +11,11 @@ import WalletDailyTable from './pages/admin/WalletDailyTable';
 import StoredCardSettlementTable from './pages/admin/StoredCardSettlementTable';
 import StoredCardMonthlyTable from './pages/admin/StoredCardMonthlyTable';
 import CommunicationTemplates from './pages/admin/CommunicationTemplates';
+import UserManagement from './pages/admin/UserManagement';
+import MerchantUserManagement from './pages/admin/MerchantUserManagement';
+import RoleManagement from './pages/admin/RoleManagement';
+import AuditLogs from './pages/admin/AuditLogs';
+import POSErrorManagement from './pages/admin/POSErrorManagement';
 
 // Merchant Panel Bileşenleri
 import MerchantLayout from './layouts/MerchantLayout';
@@ -38,6 +43,11 @@ function App() {
           <Route path="stored-card-settlement" element={<StoredCardSettlementTable />} />
           <Route path="stored-card-monthly" element={<StoredCardMonthlyTable />} />
           <Route path="communication-templates" element={<CommunicationTemplates />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="merchant-users" element={<MerchantUserManagement />} />
+          <Route path="roles" element={<RoleManagement />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
+          <Route path="pos-error-management" element={<POSErrorManagement />} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
         

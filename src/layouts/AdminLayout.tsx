@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LogOut, CreditCard, Wallet, Calendar, BarChart3, Mail } from 'lucide-react';
+import { LogOut, CreditCard, Wallet, Calendar, BarChart3, Mail, Users, Building2, Shield, FileText, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import hepsipayLogo from '../assets/hepsipay-logo.png';
 
@@ -80,6 +80,49 @@ export default function AdminLayout() {
           </NavLink>
           
           <div className="px-4 mt-6 mb-2 text-xs font-semibold text-blue-300 uppercase">
+            Kullanıcı Yönetimi
+          </div>
+          <NavLink 
+            to="/admin/users" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+            }
+          >
+            <Users className="h-5 w-5 mr-3" />
+            Admin Kullanıcıları
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/merchant-users" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+            }
+          >
+            <Building2 className="h-5 w-5 mr-3" />
+            Merchant Kullanıcıları
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/roles" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+            }
+          >
+            <Shield className="h-5 w-5 mr-3" />
+            Rol Yönetimi
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/audit-logs" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+            }
+          >
+            <FileText className="h-5 w-5 mr-3" />
+            Denetim Logları
+          </NavLink>
+          
+          <div className="px-4 mt-6 mb-2 text-xs font-semibold text-blue-300 uppercase">
             Sistem Yönetimi
           </div>
           <NavLink 
@@ -90,6 +133,16 @@ export default function AdminLayout() {
           >
             <Mail className="h-5 w-5 mr-3" />
             İletişim Senaryoları
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/pos-error-management" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+            }
+          >
+            <AlertTriangle className="h-5 w-5 mr-3" />
+            POS Hata Yönetimi
           </NavLink>
         </nav>
         
