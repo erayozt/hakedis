@@ -1,0 +1,35 @@
+[build]
+  publish = "dist"
+  command = "npm run build:prod"
+
+[build.environment]
+  VITE_APP_ENV = "production"
+  VITE_FRAUD_FEATURES_ENABLED = "false"
+
+# Development branch - fraud features enabled
+[context.develop]
+  command = "npm run build"
+  [context.develop.environment]
+    VITE_APP_ENV = "development"
+    VITE_FRAUD_FEATURES_ENABLED = "true"
+
+# Feature branch previews - fraud features enabled for testing
+[context.branch-deploy]
+  command = "npm run build"
+  [context.branch-deploy.environment]
+    VITE_APP_ENV = "development"  
+    VITE_FRAUD_FEATURES_ENABLED = "true"
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirect rules
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
