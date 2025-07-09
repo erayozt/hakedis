@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:prod": "VITE_APP_ENV=production VITE_FRAUD_FEATURES_ENABLED=false tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

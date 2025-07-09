@@ -20,6 +20,8 @@ import POSErrorManagement from './pages/admin/POSErrorManagement';
 import ParameterDefinitions from "./pages/admin/ParameterDefinitions"; // Parametre tanımları sayfası
 import RuleBuilder from "./pages/admin/RuleBuilder"; // Kural oluşturucu sayfası
 import RuleTemplates from "./pages/admin/RuleTemplates"; // Kural şablonları sayfası
+import { isFraudFeaturesEnabled } from "./utils/environment";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Merchant Panel Bileşenleri
 import MerchantLayout from './layouts/MerchantLayout';
@@ -52,9 +54,21 @@ function App() {
           <Route path="roles" element={<RoleManagement />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="pos-error-management" element={<POSErrorManagement />} />
-          <Route path="parameter-definitions" element={<ParameterDefinitions />} />
-          <Route path="rule-builder" element={<RuleBuilder />} />
-          <Route path="rule-templates" element={<RuleTemplates />} />
+          <Route path="parameter-definitions" element={
+            <ProtectedRoute requireFraudFeature={true}>
+              <ParameterDefinitions />
+            </ProtectedRoute>
+          } />
+          <Route path="rule-builder" element={
+            <ProtectedRoute requireFraudFeature={true}>
+              <RuleBuilder />
+            </ProtectedRoute>
+          } />
+          <Route path="rule-templates" element={
+            <ProtectedRoute requireFraudFeature={true}>
+              <RuleTemplates />
+            </ProtectedRoute>
+          } />
 
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>

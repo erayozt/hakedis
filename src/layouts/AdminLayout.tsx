@@ -1,8 +1,9 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LogOut, CreditCard, Wallet, Calendar, BarChart3, Mail, Users, Building2, Shield, FileText, AlertTriangle, ShieldAlert, Settings, Zap, Star, Menu } from 'lucide-react';
+import { LogOut, CreditCard, Wallet, Calendar, BarChart3, Mail, Users, Building2, Shield, FileText, AlertTriangle, ShieldAlert, Settings, Zap, Star, Menu, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import hepsipayLogo from '../assets/hepsipay-logo.png';
+import { isFraudFeaturesEnabled, isDevelopment } from '../utils/environment';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -189,40 +190,89 @@ export default function AdminLayout() {
 
           {/* Güvenlik & Fraud */}
           {!isCollapsed && (
-            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide flex items-center">
               Güvenlik & Fraud
+              {!isFraudFeaturesEnabled() && (
+                <span className="ml-2 text-xs bg-yellow-600 text-yellow-100 px-2 py-0.5 rounded-full">
+                  Yakında
+                </span>
+              )}
             </div>
           )}
-          <NavLink
-              to="/admin/parameter-definitions"
-              className={({ isActive }) =>
-                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-              }
-              title={isCollapsed ? 'Parametre Tanımları' : ''}
-          >
-            <Settings className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Parametre Tanımları</span>}
-          </NavLink>
-          <NavLink
-              to="/admin/rule-builder"
-              className={({ isActive }) =>
-                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-              }
-              title={isCollapsed ? 'Kurallar' : ''}
-          >
-            <Zap className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Kurallar</span>}
-          </NavLink>
-          <NavLink
-              to="/admin/rule-templates"
-              className={({ isActive }) =>
-                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-              }
-              title={isCollapsed ? 'Kural Şablonları' : ''}
-          >
-            <Star className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Kural Şablonları</span>}
-          </NavLink>
+          
+          {isFraudFeaturesEnabled() ? (
+            <>
+              <NavLink
+                  to="/admin/parameter-definitions"
+                  className={({ isActive }) =>
+                      `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+                  }
+                  title={isCollapsed ? 'Parametre Tanımları' : ''}
+              >
+                <Settings className="h-4 w-4" />
+                {!isCollapsed && <span className="ml-3">Parametre Tanımları</span>}
+              </NavLink>
+              <NavLink
+                  to="/admin/rule-builder"
+                  className={({ isActive }) =>
+                      `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+                  }
+                  title={isCollapsed ? 'Kurallar' : ''}
+              >
+                <Zap className="h-4 w-4" />
+                {!isCollapsed && <span className="ml-3">Kurallar</span>}
+              </NavLink>
+              <NavLink
+                  to="/admin/rule-templates"
+                  className={({ isActive }) =>
+                      `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+                  }
+                  title={isCollapsed ? 'Kural Şablonları' : ''}
+              >
+                <Star className="h-4 w-4" />
+                {!isCollapsed && <span className="ml-3">Kural Şablonları</span>}
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <div
+                className={`flex items-center px-4 py-1.5 text-sm text-gray-400 cursor-not-allowed ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? 'Parametre Tanımları (Yakında)' : ''}
+              >
+                <Settings className="h-4 w-4" />
+                {!isCollapsed && (
+                  <span className="ml-3 flex items-center">
+                    Parametre Tanımları
+                    <Lock className="h-3 w-3 ml-2" />
+                  </span>
+                )}
+              </div>
+              <div
+                className={`flex items-center px-4 py-1.5 text-sm text-gray-400 cursor-not-allowed ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? 'Kurallar (Yakında)' : ''}
+              >
+                <Zap className="h-4 w-4" />
+                {!isCollapsed && (
+                  <span className="ml-3 flex items-center">
+                    Kurallar
+                    <Lock className="h-3 w-3 ml-2" />
+                  </span>
+                )}
+              </div>
+              <div
+                className={`flex items-center px-4 py-1.5 text-sm text-gray-400 cursor-not-allowed ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? 'Kural Şablonları (Yakında)' : ''}
+              >
+                <Star className="h-4 w-4" />
+                {!isCollapsed && (
+                  <span className="ml-3 flex items-center">
+                    Kural Şablonları
+                    <Lock className="h-3 w-3 ml-2" />
+                  </span>
+                )}
+              </div>
+            </>
+          )}
 
         </nav>
 
