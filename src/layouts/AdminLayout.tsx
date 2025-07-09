@@ -1,183 +1,249 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LogOut, CreditCard, Wallet, Calendar, BarChart3, Mail, Users, Building2, Shield, FileText, AlertTriangle } from 'lucide-react';
+import { LogOut, CreditCard, Wallet, Calendar, BarChart3, Mail, Users, Building2, Shield, FileText, AlertTriangle, ShieldAlert, Settings, Zap, Star, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import hepsipayLogo from '../assets/hepsipay-logo.png';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const handleLogout = () => {
     navigate('/');
   };
-  
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-blue-800 text-white">
-        <div className="p-4 flex flex-col items-center">
-          <img src={hepsipayLogo} alt="Hepsipay Logo" className="h-10" />
-          <span className="text-xl font-bold mt-2">Yönetici Paneli</span>
+      <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gradient-to-b from-blue-800 to-blue-900 text-white flex flex-col transition-all duration-300`}>
+        {/* Logo and Toggle - Always visible */}
+        <div className="flex items-center px-4 py-4 border-b border-blue-700 flex-shrink-0">
+          {!isCollapsed ? (
+            // Expanded state - logo + text + hamburger
+            <>
+              <div className="flex flex-col items-center flex-1">
+                <img src={hepsipayLogo} alt="HepsiPay" className="h-8 w-auto" />
+                <span className="mt-1 text-sm font-semibold">Admin Panel</span>
+              </div>
+              <button
+                onClick={toggleSidebar}
+                className="p-1 rounded hover:bg-blue-700 transition-colors self-start"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </>
+          ) : (
+            // Collapsed state - only logo centered with hamburger on top
+            <div className="w-full">
+              <button
+                onClick={toggleSidebar}
+                className="p-1 rounded hover:bg-blue-700 transition-colors mb-2 w-full flex justify-center"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="flex justify-center">
+                <img src={hepsipayLogo} alt="HepsiPay" className="h-6 w-auto" />
+              </div>
+            </div>
+          )}
         </div>
-        
-        <nav className="mt-8">
-          <div className="px-4 mb-2 text-xs font-semibold text-blue-300 uppercase">
-            Ana Menü
-          </div>
+
+        {/* Navigation - Scrollable with max height */}
+        <nav className="flex-1 py-2 overflow-y-auto max-h-[calc(100vh-140px)]">
+          {/* Dashboard */}
           <NavLink 
             to="/admin/dashboard" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-2 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Dashboard' : ''}
           >
-            <BarChart3 className="h-5 w-5 mr-3" />
-            Dashboard
+            <BarChart3 className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Dashboard</span>}
           </NavLink>
-          
-          <div className="px-4 mt-6 mb-2 text-xs font-semibold text-blue-300 uppercase">
-            Cüzdan İşlemleri
-          </div>
+
+          {/* Hakediş Yönetimi */}
+          {!isCollapsed && (
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+              Hakediş Yönetimi
+            </div>
+          )}
           <NavLink 
             to="/admin/wallet-settlement" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Cüzdan Hakediş' : ''}
           >
-            <Wallet className="h-5 w-5 mr-3" />
-            Cüzdan Hakediş Tablosu
+            <Wallet className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Cüzdan Hakediş</span>}
           </NavLink>
-          
           <NavLink 
             to="/admin/wallet-daily" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Cüzdan Günlük' : ''}
           >
-            <Calendar className="h-5 w-5 mr-3" />
-            Cüzdan Günsonu Tablosu
+            <Calendar className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Cüzdan Günlük</span>}
           </NavLink>
-          
-          <div className="px-4 mt-6 mb-2 text-xs font-semibold text-blue-300 uppercase">
-            Saklı Kart İşlemleri
-          </div>
           <NavLink 
             to="/admin/stored-card-settlement" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Saklı Kart Hakediş' : ''}
           >
-            <CreditCard className="h-5 w-5 mr-3" />
-            Saklı Kart Hakediş Tablosu
+            <CreditCard className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Saklı Kart Hakediş</span>}
           </NavLink>
-          
           <NavLink 
             to="/admin/stored-card-monthly" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Saklı Kart Aylık' : ''}
           >
-            <Calendar className="h-5 w-5 mr-3" />
-            Saklı Kart Aysonu Tablosu
+            <Calendar className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Saklı Kart Aylık</span>}
           </NavLink>
-          
-          <div className="px-4 mt-6 mb-2 text-xs font-semibold text-blue-300 uppercase">
-            Kullanıcı Yönetimi
-          </div>
+
+          {/* Kullanıcı Yönetimi */}
+          {!isCollapsed && (
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+              Kullanıcı Yönetimi
+            </div>
+          )}
           <NavLink 
             to="/admin/users" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Admin Kullanıcıları' : ''}
           >
-            <Users className="h-5 w-5 mr-3" />
-            Admin Kullanıcıları
+            <Users className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Admin Kullanıcıları</span>}
           </NavLink>
-          
           <NavLink 
             to="/admin/merchant-users" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Üye İşyerleri' : ''}
           >
-            <Building2 className="h-5 w-5 mr-3" />
-            Merchant Kullanıcıları
+            <Building2 className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Üye İşyerleri</span>}
           </NavLink>
-          
           <NavLink 
             to="/admin/roles" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Rol Yönetimi' : ''}
           >
-            <Shield className="h-5 w-5 mr-3" />
-            Rol Yönetimi
+            <Shield className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Rol Yönetimi</span>}
           </NavLink>
-          
           <NavLink 
             to="/admin/audit-logs" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'Denetim Logları' : ''}
           >
-            <FileText className="h-5 w-5 mr-3" />
-            Denetim Logları
+            <FileText className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Denetim Logları</span>}
           </NavLink>
-          
-          <div className="px-4 mt-6 mb-2 text-xs font-semibold text-blue-300 uppercase">
-            Sistem Yönetimi
-          </div>
+
+          {/* Sistem Yönetimi */}
+          {!isCollapsed && (
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+              Sistem
+            </div>
+          )}
           <NavLink 
             to="/admin/communication-templates" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'İletişim Senaryoları' : ''}
           >
-            <Mail className="h-5 w-5 mr-3" />
-            İletişim Senaryoları
+            <Mail className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">İletişim Senaryoları</span>}
           </NavLink>
-          
           <NavLink 
             to="/admin/pos-error-management" 
             className={({ isActive }) => 
-              `flex items-center px-4 py-2 ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'}`
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
             }
+            title={isCollapsed ? 'POS Hata Yönetimi' : ''}
           >
-            <AlertTriangle className="h-5 w-5 mr-3" />
-            POS Hata Yönetimi
+            <AlertTriangle className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">POS Hata Yönetimi</span>}
           </NavLink>
-        </nav>
-        
-        <div className="absolute bottom-0 w-64 p-4">
-          <button 
-            onClick={handleLogout}
-            className="flex items-center text-blue-300 hover:text-white"
+
+          {/* Güvenlik & Fraud */}
+          {!isCollapsed && (
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+              Güvenlik & Fraud
+            </div>
+          )}
+          <NavLink
+              to="/admin/parameter-definitions"
+              className={({ isActive }) =>
+                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+              }
+              title={isCollapsed ? 'Parametre Tanımları' : ''}
           >
-            <LogOut className="h-5 w-5 mr-3" />
-            Çıkış Yap
+            <Settings className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Parametre Tanımları</span>}
+          </NavLink>
+          <NavLink
+              to="/admin/rule-builder"
+              className={({ isActive }) =>
+                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+              }
+              title={isCollapsed ? 'Kurallar' : ''}
+          >
+            <Zap className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Kurallar</span>}
+          </NavLink>
+          <NavLink
+              to="/admin/rule-templates"
+              className={({ isActive }) =>
+                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+              }
+              title={isCollapsed ? 'Kural Şablonları' : ''}
+          >
+            <Star className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Kural Şablonları</span>}
+          </NavLink>
+
+        </nav>
+
+        {/* Logout - Always visible at bottom */}
+        <div className="p-4 border-t border-blue-700 flex-shrink-0">
+          <button
+            onClick={handleLogout}
+            className={`flex items-center w-full px-4 py-2 text-sm text-blue-200 hover:text-white hover:bg-blue-700 rounded transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+            title={isCollapsed ? 'Çıkış Yap' : ''}
+          >
+            <LogOut className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Çıkış Yap</span>}
           </button>
         </div>
       </div>
-      
-      {/* Main content */}
+
+      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white shadow-sm z-10">
-          <div className="px-4 py-3 flex justify-between items-center">
-            <h2 className="text-lg font-medium">Hepsipay Yönetim Sistemi</h2>
-            
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-gray-700 hover:text-gray-900"
-            >
-              <LogOut className="h-5 w-5 mr-1" />
-              Çıkış Yap
-            </button>
-          </div>
-        </header>
-        
-        {/* Main content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div className="flex-1 overflow-auto">
           <Outlet />
-        </main>
+        </div>
       </div>
     </div>
   );
