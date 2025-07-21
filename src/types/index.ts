@@ -135,7 +135,8 @@ export interface ErrorCategory {
 export interface HBErrorCode {
   id: string;
   hbErrorCode: string; // HB error code (örn: "1501", "1502")
-  hbErrorMessage: string; // HB error message
+  originalSystemMessage: string; // Sistemden gelen ham, değiştirilemez mesaj
+  hbErrorMessage: string; // Kullanıcı dostu, düzenlenebilir mesaj
   categoryId: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
   shouldRetry: boolean;

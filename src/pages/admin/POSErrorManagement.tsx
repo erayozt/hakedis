@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import React, { useState, useEffect, useRef } from 'react';
 import { posErrorService } from '../../services/posErrorService';
-import { POSProvider, ErrorCategory, HBErrorCode } from '../../types';
+import { POSProvider, ErrorCategory, HBErrorCode, ErrorMapping } from '../../types';
 import { ExtendedErrorMapping } from '../../services/posErrorService';
 import ErrorMappingModal from '../../components/ErrorMappingModal';
+import HbCodeEditModal from '../../components/HbCodeEditModal';
 import { 
   AlertTriangle, 
   Plus, 
   Search, 
   Download, 
-  Upload,
-  Eye,
+  ChevronRight,
+  ChevronDown,
   Edit2,
-  FileText
+  Trash2,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const POSErrorManagement: React.FC = () => {
@@ -22,21 +24,26 @@ const POSErrorManagement: React.FC = () => {
   const [hbErrorCodes, setHbErrorCodes] = useState<HBErrorCode[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('direct');
 
   // Filters
   const [selectedProviderIdForFilter, setSelectedProviderIdForFilter] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOnlyActive, setShowOnlyActive] = useState(true);
-
-  // Pagination states
+  
+  // Pagination states for master codes
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Expanded rows state
+  const [expandedHbCodeIds, setExpandedHbCodeIds] = useState<Set<string>>(new Set());
 
   // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
   const [editingMapping, setEditingMapping] = useState<ExtendedErrorMapping | null>(null);
+  
+  const [isHbCodeModalOpen, setIsHbCodeModalOpen] = useState(false);
+  const [editingHbCode, setEditingHbCode] = useState<HBErrorCode | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial data
   useEffect(() => {
@@ -64,54 +71,136 @@ const POSErrorManagement: React.FC = () => {
     }
   };
 
-  // Filter mappings for current tab
-  const getCurrentProviderMappings = () => {
-    let providerIds: string[] = [];
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log("Seçilen dosya:", file.name);
+      alert(`${file.name} seçildi. Bu özellik şu anda geliştirme aşamasındadır.`);
+      if(event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
+  const handleExportCsv = () => {
+    const headers = [
+      "ProviderSistemKodu (Zorunlu)", 
+      "ProviderHataKodu (Zorunlu)", 
+      "Eslestirilecek_AnaHataKodu (Zorunlu)",
+      "ProviderHataMesaji (Opsiyonel)", 
+      "Durum (Aktif/Pasif - Varsayilan: Aktif)"
+    ];
+
+    // Get all mappings data to export. If none, provide a template with examples.
+    let rows: (string | number | undefined)[][];
+
+    if (mappings.length > 0) {
+      rows = mappings
+        .filter(m => !['hepsipay', 'wallet', 'paygate'].includes(m.posProvider?.code || ''))
+        .map(mapping => [
+        mapping.posProvider?.code.toUpperCase(),
+        mapping.providerErrorCode,
+        mapping.hbErrorCode?.hbErrorCode,
+        mapping.providerErrorMessage,
+        mapping.isActive ? 'Aktif' : 'Pasif'
+      ]);
+    } else {
+      // Provide more realistic sample data if there's nothing to export
+      rows = [
+        ['CRAFTGATE', '3D-SEC-004', '3010', '3D Secure Dogrulamasi Basarisiz', 'Aktif'],
+        ['PAYTEN', 'GW-TIMEOUT', '2005', 'Gateway Zaman Asimi', 'Aktif'],
+        ['CRAFTGATE', 'INVALID_CARD_NUMBER', '1001', 'Gecersiz Kart Numarasi', 'Pasif']
+      ];
+    }
     
-    if (activeTab === 'direct') {
-      // Özel Hata Kodları: Hepsipay Gateway, Wallet, Paygate
-      const directProviders = providers.filter(p => 
-        ['hepsipay', 'wallet', 'paygate'].includes(p.code.toLowerCase())
-      );
-      providerIds = directProviders.map(p => p.id);
-    } else if (activeTab === 'provider') {
-      // Provider Hata Kodları: Craftgate, Payten
-      const providerCodeProviders = providers.filter(p => 
-        ['craftgate', 'payten'].includes(p.code.toLowerCase())
-      );
-      providerIds = providerCodeProviders.map(p => p.id);
+    // Using a library like 'papaparse' would be better for complex CSV generation.
+    // For now, this manual approach handles basic cases.
+    const csvContent = [
+        headers.join(','), 
+        ...rows.map(row => 
+            row.map(field => `"${(field || '').toString().replace(/"/g, '""')}"`).join(',')
+        )
+    ].join('\n');
+
+    const bom = "\uFEFF"; // BOM for UTF-8 Excel compatibility
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "hata-kodu-eslestirmeleri.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getCategoryById = (id: string) => categories.find(c => c.id === id);
+  const getProviderById = (id: string) => providers.find(p => p.id === id);
+
+  // Group mappings by their master HBErrorCode ID
+  const mappingsByHbCodeId = React.useMemo(() => {
+    return mappings.reduce((acc, mapping) => {
+      const key = mapping.hbErrorCodeId;
+      if (key) {
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(mapping);
+      }
+      return acc;
+    }, {} as Record<string, ExtendedErrorMapping[]>);
+  }, [mappings]);
+
+  // Filter master HB error codes
+  const getFilteredHbErrorCodes = () => {
+    let filteredCodes = [...hbErrorCodes];
+
+    if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const relevantHbCodeIds = new Set<string>();
+
+        // Find mappings that match the search term
+        mappings.forEach(mapping => {
+            const match = mapping.providerErrorCode.toLowerCase().includes(term) ||
+                          mapping.providerErrorMessage?.toLowerCase().includes(term) ||
+                          mapping.hbErrorCode?.hbErrorCode.toLowerCase().includes(term) ||
+                          mapping.hbErrorCode?.hbErrorMessage.toLowerCase().includes(term);
+            if (match && mapping.hbErrorCodeId) {
+                relevantHbCodeIds.add(mapping.hbErrorCodeId);
+            }
+        });
+        
+        // Also search in hbErrorCodes themselves
+        hbErrorCodes.forEach(code => {
+            const match = code.hbErrorCode.toLowerCase().includes(term) ||
+                          code.hbErrorMessage.toLowerCase().includes(term);
+            if(match) {
+                relevantHbCodeIds.add(code.id);
+            }
+        });
+
+        filteredCodes = filteredCodes.filter(code => relevantHbCodeIds.has(code.id));
     }
 
-    return mappings.filter(mapping => {
-      // Tab'a göre provider'ları filtrele
-      if (!providerIds.includes(mapping.posProviderId)) return false;
+    if (selectedProviderIdForFilter !== 'all') {
+        const relevantHbCodeIds = new Set<string>();
+        mappings.forEach(mapping => {
+            if (mapping.posProviderId === selectedProviderIdForFilter && mapping.hbErrorCodeId) {
+                relevantHbCodeIds.add(mapping.hbErrorCodeId);
+            }
+        });
+        filteredCodes = filteredCodes.filter(code => relevantHbCodeIds.has(code.id));
+    }
 
-      // Provider tab'ındaysa ve bir provider seçilmişse ona göre filtrele
-      if (activeTab === 'provider' && selectedProviderIdForFilter !== 'all' && mapping.posProviderId !== selectedProviderIdForFilter) {
-        return false;
-      }
-      
-      if (selectedCategory !== 'all' && mapping.hbErrorCode?.categoryId !== selectedCategory) return false;
-      if (showOnlyActive && !mapping.isActive) return false;
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        return (
-          mapping.providerErrorCode.toLowerCase().includes(term) ||
-          mapping.providerErrorMessage?.toLowerCase().includes(term) ||
-          mapping.hbErrorCode?.hbErrorCode.toLowerCase().includes(term) ||
-          mapping.hbErrorCode?.hbErrorMessage.toLowerCase().includes(term)
-        );
-      }
-      return true;
-    });
+    return filteredCodes;
   };
 
   // Pagination logic
-  const getPaginatedMappings = () => {
-    // Provider tabında bir provider seçili mi kontrolü
-    const isProviderSelectedOnProviderTab = activeTab === 'provider' && selectedProviderIdForFilter === 'all';
-    
-    const filtered = getCurrentProviderMappings();
+  const getPaginatedHbErrorCodes = () => {
+    const filtered = getFilteredHbErrorCodes();
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return {
@@ -121,43 +210,75 @@ const POSErrorManagement: React.FC = () => {
     };
   };
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, selectedCategory, searchTerm, showOnlyActive, itemsPerPage, selectedProviderIdForFilter]);
+  }, [searchTerm, selectedProviderIdForFilter, itemsPerPage]);
 
-  // Provider tab'ındaki provider'lar
-  const providerCodeProviders = providers.filter(p => 
-    ['craftgate', 'payten'].includes(p.code.toLowerCase())
-  );
-
-  const getCategoryById = (id: string) => categories.find(c => c.id === id);
-  const getProviderById = (id: string) => providers.find(p => p.id === id);
-
-  // Özel Hata Kodları tab'ında Provider Kodu/Mesajı kolonları gizli
-  const shouldShowProviderColumns = () => {
-    return activeTab === 'provider'; // Sadece provider tab'ında göster
+  const toggleHbCodeRow = (hbCodeId: string) => {
+    setExpandedHbCodeIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(hbCodeId)) {
+        newSet.delete(hbCodeId);
+      } else {
+        newSet.add(hbCodeId);
+      }
+      return newSet;
+    });
   };
 
-  const handleCreateMapping = () => {
-    setEditingMapping(null);
-    setIsModalOpen(true);
+  const handleCreateMapping = (hbErrorCodeId: string) => {
+    const newMappingTemplate: Partial<ExtendedErrorMapping> & { hbErrorCodeId: string } = {
+      hbErrorCodeId: hbErrorCodeId,
+      posProviderId: '',
+      providerErrorCode: '',
+      providerErrorMessage: '',
+      isActive: true,
+    };
+    setEditingMapping(newMappingTemplate as ExtendedErrorMapping);
+    setIsMappingModalOpen(true);
+  };
+
+  const handleEditHbCode = (hbCode: HBErrorCode) => {
+    setEditingHbCode(hbCode);
+    setIsHbCodeModalOpen(true);
+  };
+
+  const handleSaveHbCode = (updatedHbCode: HBErrorCode) => {
+    setHbErrorCodes(prev => 
+      prev.map(code => code.id === updatedHbCode.id ? updatedHbCode : code)
+    );
+    setIsHbCodeModalOpen(false);
+    setEditingHbCode(null);
   };
 
   const handleEditMapping = (mapping: ExtendedErrorMapping) => {
     setEditingMapping(mapping);
-    setIsModalOpen(true);
+    setIsMappingModalOpen(true);
   };
 
-  const handleSaveMapping = (savedMapping: ExtendedErrorMapping) => {
-    if (editingMapping) {
-      setMappings(prev => prev.map(m => m.id === savedMapping.id ? savedMapping : m));
+  const handleSaveMapping = (savedMapping: ErrorMapping) => {
+    if (savedMapping.id) {
+      setMappings(prev => prev.map(m => m.id === savedMapping.id ? { ...m, ...savedMapping } : m));
     } else {
-      setMappings(prev => [savedMapping, ...prev]);
+      const newMappingWithId: ExtendedErrorMapping = {
+        ...savedMapping,
+        id: `map-${new Date().getTime()}`, 
+        hbErrorCode: hbErrorCodes.find(c => c.id === savedMapping.hbErrorCodeId),
+        category: categories.find(c => c.id === savedMapping.categoryId),
+        posProvider: providers.find(p => p.id === savedMapping.posProviderId)
+      };
+      setMappings(prev => [newMappingWithId, ...prev]);
     }
+
+    setIsMappingModalOpen(false);
+    setEditingMapping(null);
   };
 
-  const paginatedResult = getPaginatedMappings();
+  const handleDeleteMapping = (mappingId: string) => {
+    setMappings(prev => prev.filter(m => m.id !== mappingId));
+  }
+
+  const paginatedResult = getPaginatedHbErrorCodes();
 
   if (loading) {
     return (
@@ -171,86 +292,62 @@ const POSErrorManagement: React.FC = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">POS Hata Mesaj Yönetimi</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">POS Hata Mesaj Yönlendirmeleri</h1>
         <p className="text-gray-600">
-          POS sistemlerinden gelen hata kodlarını dokümanlardan alarak yönetin ve kullanıcı dostu mesajlara dönüştürün
+          Ana hata kodlarını yönetin ve dış provider'lardan gelen hataları bu kodlarla eşleştirin.
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow border">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 h-auto p-1">
-            <TabsTrigger 
-              value="direct" 
-              className="flex items-center justify-center gap-2 h-12 text-xs"
+      <div className="bg-white p-6 rounded-lg shadow border mb-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Toplu İşlemler
+          </h2>
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileImport}
+              className="hidden"
+              accept=".csv"
+            />
+            <button
+              onClick={handleImportClick}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              <FileText className="h-4 w-4" />
-              <span>HB Hata Kodları</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="provider" 
-              className="flex items-center justify-center gap-2 h-12 text-xs"
+              <Upload className="h-4 w-4" />
+              İçe Aktar
+            </button>
+            <button 
+                onClick={handleExportCsv}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              <FileText className="h-4 w-4" />
-              <span>Provider Hata Kodları</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              <Download className="h-4 w-4" />
+              Dışa Aktar
+            </button>
+          </div>
+        </div>
+      </div>
 
-        {/* Header and Filters */}
-        <div className="mt-6">
+      <div className="bg-white p-6 rounded-lg shadow border">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                {activeTab === 'direct' ? 'HB Hata Kodları' : 'Provider Hata Kodları'}
+                Filtreler
               </h2>
-              <p className="text-gray-600">
-                {activeTab === 'direct' 
-                  ? 'Hepsipay Gateway, Wallet ve Paygate sistemlerinin doğrudan HB hata kodları'
-                  : 'Craftgate ve Payten sistemlerinin iki aşamalı hata kodu mapping\'leri'}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleCreateMapping}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" />
-                Yeni Hata Kodu
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                <Download className="h-4 w-4" />
-                Dışa Aktar
-              </button>
-            </div>
           </div>
 
-          <div className={`grid grid-cols-1 md:grid-cols-${activeTab === 'provider' ? 4 : 3} gap-4`}>
-            {activeTab === 'provider' && (
-               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Provider Filtresi</label>
-                <select
-                  value={selectedProviderIdForFilter}
-                  onChange={(e) => setSelectedProviderIdForFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">Tüm Provider'lar</option>
-                  {providerCodeProviders.map(provider => (
-                    <option key={provider.id} value={provider.id}>{provider.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Provider'a Göre Filtrele</label>
               <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                value={selectedProviderIdForFilter}
+                onChange={(e) => setSelectedProviderIdForFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">Tüm Kategoriler</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
+                <option value="all">Tüm Provider'lar</option>
+                {providers.map(provider => (
+                  <option key={provider.id} value={provider.id}>{provider.name}</option>
                 ))}
               </select>
             </div>
@@ -268,61 +365,31 @@ const POSErrorManagement: React.FC = () => {
                 />
               </div>
             </div>
-
-            <div className="flex items-end">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={showOnlyActive}
-                  onChange={(e) => setShowOnlyActive(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-700">Sadece aktif olanlar</span>
-              </label>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Common Table and Pagination */}
+      {/* Table */}
       <div className="mt-6 bg-white rounded-lg shadow border overflow-hidden">
-        <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900">
-            {activeTab === 'direct' ? 'HB Hata Kodları' : 'Provider Hata Kodları'} ({paginatedResult.total})
-          </h3>
-          <div className="text-sm text-gray-500">
-            Sayfa {currentPage} / {paginatedResult.totalPages} (Toplam: {paginatedResult.total})
-          </div>
-        </div>
-
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sistem
-                </th>
-                {shouldShowProviderColumns() && (
-                  <>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Provider Kodu
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Provider Mesajı
-                    </th>
-                  </>
-                )}
+                <th className="w-12 px-6"></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   HB Kodu
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  HB Mesajı
+                  Orijinal Sistem Mesajı
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  HB Mesajı (Kullanıcı Dostu)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Kategori
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Durum
+                  Eşleşme Sayısı
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   İşlemler
@@ -330,112 +397,127 @@ const POSErrorManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedResult.data.map((mapping) => {
-                const category = getCategoryById(mapping.hbErrorCode?.categoryId || '');
-                const provider = getProviderById(mapping.posProviderId);
+              {paginatedResult.data.map((hbCode) => {
+                const associatedMappings = mappingsByHbCodeId[hbCode.id] || [];
+                const isExpanded = expandedHbCodeIds.has(hbCode.id);
+                const category = getCategoryById(hbCode.categoryId);
 
                 return (
-                  <tr key={mapping.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        provider?.code === 'hepsipay' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                        provider?.code === 'wallet' ? 'bg-green-100 text-green-800 border-green-200' :
-                        provider?.code === 'paygate' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                        provider?.code === 'craftgate' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                        provider?.code === 'payten' ? 'bg-red-100 text-red-800 border-red-200' :
-                        'bg-gray-100 text-gray-800 border-gray-200'
-                      }`}>
-                        {provider?.code === 'hepsipay' ? 'Özel' :
-                         provider?.code === 'wallet' ? 'Wallet' :
-                         provider?.code === 'paygate' ? 'Paygate' :
-                         provider?.code === 'craftgate' ? 'Craftgate' :
-                         provider?.code === 'payten' ? 'Payten' :
-                         provider?.name || 'Bilinmeyen'}
-                      </span>
-                    </td>
-                    {shouldShowProviderColumns() && (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-mono font-medium text-gray-900">
-                            {mapping.providerErrorCode}
+                  <React.Fragment key={hbCode.id}>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6">
+                        <button onClick={() => toggleHbCodeRow(hbCode.id)} className="text-gray-500 hover:text-gray-800">
+                          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-mono font-medium text-blue-600">{hbCode.hbErrorCode}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-mono text-gray-600">{hbCode.originalSystemMessage}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-md">{hbCode.hbErrorMessage}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {category && (
+                          <span
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                            style={{
+                              backgroundColor: category.color + '20',
+                              color: category.color,
+                              borderColor: category.color + '40'
+                            }}
+                          >
+                            {category.name}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-700">{associatedMappings.length}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center gap-4">
+                          <button onClick={() => handleEditHbCode(hbCode)} className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                            <Edit2 className="h-4 w-4" /> Mesajı Düzenle
+                          </button>
+                          <button onClick={() => handleCreateMapping(hbCode.id)} className="flex items-center gap-1 text-blue-600 hover:text-blue-900">
+                            <Plus className="h-4 w-4" /> Yeni Eşleştirme
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={7} className="p-0">
+                          <div className="p-4">
+                            {associatedMappings.length > 0 ? (
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-100">
+                                  <tr>
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider Kodu</th>
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider Mesajı</th>
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                  {associatedMappings.map(mapping => {
+                                      const provider = getProviderById(mapping.posProviderId);
+                                      const isMasterMapping = ['hepsipay', 'wallet', 'paygate'].includes(provider?.code || '');
+                                    return (
+                                      <tr key={mapping.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">{provider?.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{mapping.providerErrorCode}</td>
+                                        <td className="px-6 py-4 text-sm max-w-sm">{mapping.providerErrorMessage}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                mapping.isActive
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {mapping.isActive ? 'Aktif' : 'Pasif'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => handleEditMapping(mapping)} disabled={isMasterMapping} className="text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button onClick={() => handleDeleteMapping(mapping.id)} disabled={isMasterMapping} className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <div className="text-center py-4 text-gray-500">
+                                Bu ana hata kodu için henüz bir provider eşleştirmesi yapılmamış.
+                              </div>
+                            )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-xs">
-                            {mapping.providerErrorMessage || '-'}
-                          </div>
-                        </td>
-                      </>
+                      </tr>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono font-medium text-blue-600">
-                        {mapping.hbErrorCode?.hbErrorCode || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-md">
-                        {mapping.hbErrorCode?.hbErrorMessage || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {category && (
-                        <span
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
-                          style={{
-                            backgroundColor: category.color + '20',
-                            color: category.color,
-                            borderColor: category.color + '40'
-                          }}
-                        >
-                          {category.name}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        mapping.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {mapping.isActive ? 'Aktif' : 'Pasif'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <button className="text-blue-600 hover:text-blue-900">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditMapping(mapping)}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>
           </table>
         </div>
-
-        {paginatedResult.total === 0 && (
+        
+        {paginatedResult.total === 0 && !loading && (
           <div className="text-center py-12">
             <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Hiç hata kodu bulunamadı</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Sonuç Bulunamadı</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {activeTab === 'direct' ? 'HB hata kodları' : 'Provider hata kodları'} için henüz mapping tanımlanmamış.
+              Filtre kriterlerinize uygun bir hata kodu veya eşleştirme bulunamadı.
             </p>
-            <div className="mt-6">
-              <button
-                onClick={handleCreateMapping}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                İlk Hata Kodunu Ekle
-              </button>
-            </div>
           </div>
         )}
 
@@ -455,32 +537,7 @@ const POSErrorManagement: React.FC = () => {
                 >
                   Önceki
                 </button>
-                {Array.from({ length: paginatedResult.totalPages }, (_, i) => i + 1)
-                  .filter(page => {
-                    return page === 1 ||
-                           page === paginatedResult.totalPages ||
-                           Math.abs(page - currentPage) <= 1;
-                  })
-                  .map((page, index, array) => {
-                    const showDots = index > 0 && page - array[index - 1] > 1;
-                    return (
-                      <React.Fragment key={page}>
-                        {showDots && (
-                          <span className="px-3 py-2 text-sm font-medium text-gray-500">...</span>
-                        )}
-                        <button
-                          onClick={() => setCurrentPage(page)}
-                          className={`px-3 py-2 text-sm font-medium border ${
-                            currentPage === page
-                              ? 'bg-blue-50 border-blue-500 text-blue-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    );
-                  })}
+                 {/* TODO: Better pagination component */}
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginatedResult.totalPages))}
                   disabled={currentPage === paginatedResult.totalPages}
@@ -494,21 +551,28 @@ const POSErrorManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Error Mapping Modal */}
+      <HbCodeEditModal
+        isOpen={isHbCodeModalOpen}
+        onClose={() => setIsHbCodeModalOpen(false)}
+        onSave={handleSaveHbCode}
+        hbCode={editingHbCode}
+        categories={categories}
+      />
+
       <ErrorMappingModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isMappingModalOpen}
+        onClose={() => {
+          setIsMappingModalOpen(false);
+          setEditingMapping(null);
+        }}
         onSave={handleSaveMapping}
-        mapping={editingMapping}
-        providers={providers}
+        mapping={editingMapping ? {
+          ...editingMapping,
+          categoryId: editingMapping.category?.id || '',
+        } : null}
+        providers={providers.filter(p => !['hepsipay', 'wallet', 'paygate'].includes(p.code))}
         categories={categories}
         hbErrorCodes={hbErrorCodes}
-        currentProvider={
-          activeTab === 'provider'
-            ? providers.find(p => p.id === selectedProviderIdForFilter)
-            : null
-        }
-        context={activeTab as 'direct' | 'provider'}
       />
     </div>
   );

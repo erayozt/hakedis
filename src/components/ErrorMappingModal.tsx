@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertTriangle } from 'lucide-react';
 import { ErrorMapping, POSProvider, ErrorCategory, HBErrorCode } from '../types';
-import { posErrorService } from '../services/posErrorService';
-import { Combobox, ComboboxOption } from './ui/combobox';
+import { Combobox } from './ui/combobox';
 
 interface ErrorMappingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (mapping: ErrorMapping) => void;
-  mapping?: ErrorMapping | null;
+  mapping?: Partial<ErrorMapping> | null; // Allow partial mapping for new entries
   providers: POSProvider[];
   categories: ErrorCategory[];
   hbErrorCodes: HBErrorCode[];
-  currentProvider?: POSProvider | null;
-  context: 'direct' | 'provider';
 }
 
 const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
@@ -24,72 +21,56 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
   providers,
   categories,
   hbErrorCodes,
-  currentProvider,
-  context,
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<ErrorMapping>>({
     posProviderId: '',
     providerErrorCode: '',
     providerErrorMessage: '',
-    hbErrorCodeId: null as string | null,
-    userFriendlyMessage: '',
-    categoryId: '',
-    severity: 'medium' as const,
+    hbErrorCodeId: null,
+    userFriendlyMessage: '', // Bu alan HB Kodundan gelecek, burada yönetilmeyecek
+    categoryId: '', // Bu alan da HB kodundan gelecek
     internalNotes: '',
-    isActive: true
+    isActive: true,
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    if (mapping) {
-      setFormData({
-        posProviderId: mapping.posProviderId,
-        providerErrorCode: mapping.providerErrorCode || '',
-        providerErrorMessage: mapping.providerErrorMessage || '',
-        hbErrorCodeId: mapping.hbErrorCodeId || null,
-        userFriendlyMessage: mapping.userFriendlyMessage,
-        categoryId: mapping.categoryId,
-        severity: mapping.severity,
-        internalNotes: mapping.internalNotes || '',
-        isActive: mapping.isActive
-      });
-    } else {
-      setFormData({
-        posProviderId: currentProvider?.id || '',
-        providerErrorCode: '',
-        providerErrorMessage: '',
-        hbErrorCodeId: null,
-        userFriendlyMessage: '',
-        categoryId: '',
-        severity: 'medium',
-        internalNotes: '',
-        isActive: true
-      });
+    if (isOpen) {
+      if (mapping) {
+        setFormData({
+          id: mapping.id,
+          posProviderId: mapping.posProviderId || '',
+          providerErrorCode: mapping.providerErrorCode || '',
+          providerErrorMessage: mapping.providerErrorMessage || '',
+          hbErrorCodeId: mapping.hbErrorCodeId || null,
+          isActive: mapping.isActive !== undefined ? mapping.isActive : true,
+          internalNotes: mapping.internalNotes || ''
+        });
+      } else {
+        // Reset for a completely new entry if needed (though current logic handles this via mapping prop)
+        setFormData({
+            posProviderId: '',
+            providerErrorCode: '',
+            providerErrorMessage: '',
+            hbErrorCodeId: null,
+            isActive: true,
+            internalNotes: ''
+        });
+      }
+      setErrors({});
     }
-    setErrors({});
-  }, [mapping, isOpen, currentProvider]);
-
-  const availableProviders = providers.filter(provider => {
-    const providerCode = provider.code.toLowerCase();
-    if (context === 'provider') {
-      return ['craftgate', 'payten'].includes(providerCode);
-    }
-    if (context === 'direct') {
-      return ['hepsipay', 'wallet', 'paygate'].includes(providerCode);
-    }
-    return false;
-  });
+  }, [mapping, isOpen]);
+  
+  const selectedHbCode = hbErrorCodes.find(c => c.id === (mapping?.hbErrorCodeId || formData.hbErrorCodeId));
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.posProviderId) newErrors.posProviderId = 'POS sistemi seçimi zorunludur';
     if (!formData.providerErrorCode) newErrors.providerErrorCode = 'Hata kodu zorunludur';
-    if (!formData.userFriendlyMessage) newErrors.userFriendlyMessage = 'Kullanıcı mesajı zorunludur';
-    if (!formData.categoryId) newErrors.categoryId = 'Kategori seçimi zorunludur';
-
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -97,29 +78,31 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (Object.keys(errors).length > 0) {
-      setErrors(prev => ({ ...prev, form: 'Lütfen tüm alanları doldurun' }));
-      return;
+    if (!validateForm()) {
+        return;
     }
 
     setLoading(true);
     
-    // Construct the mapping object based on formData
+    // Construct the final mapping object
     const submissionData: ErrorMapping = {
-      id: mapping?.id || `mapping-${Date.now()}`,
-      posProviderId: formData.posProviderId,
-      providerErrorCode: formData.providerErrorCode,
-      providerErrorMessage: formData.providerErrorMessage,
-      hbErrorCodeId: formData.hbErrorCodeId,
-      userFriendlyMessage: formData.userFriendlyMessage,
-      categoryId: formData.categoryId,
-      internalNotes: formData.internalNotes,
-      isActive: formData.isActive,
+      id: formData.id || `map-${Date.now()}`,
+      posProviderId: formData.posProviderId!,
+      providerErrorCode: formData.providerErrorCode!,
+      providerErrorMessage: formData.providerErrorMessage || '',
+      hbErrorCodeId: selectedHbCode!.id,
+      userFriendlyMessage: selectedHbCode!.hbErrorMessage,
+      categoryId: selectedHbCode!.categoryId,
+      internalNotes: formData.internalNotes || '',
+      isActive: formData.isActive !== undefined ? formData.isActive : true,
+      // Add dummy data for missing fields to satisfy the type
+      createdAt: mapping?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: (mapping as any)?.createdBy || 'frontend-user',
+      lastModifiedBy: 'frontend-user',
     };
 
     try {
-      // Here you would typically call an API
-      // For now, we'll just use the onSave callback
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
       onSave(submissionData);
       onClose();
@@ -138,7 +121,7 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">
-            {mapping ? 'Hata Mapping Düzenle' : 'Yeni Hata Mapping'}
+            {mapping?.id ? 'Eşleştirmeyi Düzenle' : 'Yeni Eşleştirme Yap'}
           </h2>
           <button
             onClick={onClose}
@@ -149,10 +132,13 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {errors.general && (
-            <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-red-700">{errors.general}</span>
+          {/* Linked HB Code Info */}
+          {selectedHbCode && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+              <h3 className="text-sm font-semibold text-blue-800">Eşleştirilecek Ana Hata Kodu</h3>
+              <p className="text-blue-700 font-mono">
+                <span className="font-bold">{selectedHbCode.hbErrorCode}:</span> {selectedHbCode.hbErrorMessage}
+              </p>
             </div>
           )}
 
@@ -163,15 +149,15 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
                 POS Sistemi *
               </label>
               <select
-                value={formData.posProviderId}
+                value={formData.posProviderId || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, posProviderId: e.target.value }))}
-                disabled={!!mapping || !!currentProvider}
+                disabled={!!formData.id} // Sadece ID'si olan (mevcut) kayıtlarda pasif yap
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
                   errors.posProviderId ? 'border-red-300' : 'border-gray-300'
                 }`}
               >
                 <option value="">Seçiniz...</option>
-                {availableProviders.map(provider => (
+                {providers.map(provider => (
                   <option key={provider.id} value={provider.id}>
                     {provider.name}
                   </option>
@@ -189,7 +175,7 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
               </label>
               <input
                 type="text"
-                value={formData.providerErrorCode}
+                value={formData.providerErrorCode || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, providerErrorCode: e.target.value }))}
                 placeholder="örn: 1501, 1520"
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
@@ -202,93 +188,13 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
             </div>
           </div>
 
-          {/* Original Error Message */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Orijinal Hata Mesajı
-            </label>
-            <input
-              type="text"
-              value={formData.providerErrorMessage}
-              onChange={(e) => setFormData(prev => ({ ...prev, providerErrorMessage: e.target.value }))}
-              placeholder="POS sisteminden gelen orijinal mesaj"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* User Friendly Message */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Kullanıcı Dostu Mesaj *
-            </label>
-            <textarea
-              value={formData.userFriendlyMessage}
-              onChange={(e) => setFormData(prev => ({ ...prev, userFriendlyMessage: e.target.value }))}
-              placeholder="Son kullanıcıya gösterilecek anlaşılır mesaj"
-              rows={3}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.userFriendlyMessage ? 'border-red-300' : 'border-gray-300'
-              }`}
-            />
-            {errors.userFriendlyMessage && (
-              <p className="mt-1 text-sm text-red-600">{errors.userFriendlyMessage}</p>
-            )}
-          </div>
-
-          {/* HB Error Code Mapping - Only show for provider-specific error mapping context */}
-          {context === 'provider' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                HB Kodu Eşleştir
-              </label>
-              <Combobox
-                options={[{ value: '', label: 'Eşleştirme Yok' }, ...hbErrorCodes.map(code => ({
-                  value: code.id,
-                  label: `${code.hbErrorCode} - ${code.hbErrorMessage}`
-                }))]}
-                value={formData.hbErrorCodeId || ''}
-                onChange={(value) => setFormData(prev => ({ ...prev, hbErrorCodeId: value || null }))}
-                placeholder="Bir HB kodu seçin veya arayın..."
-                searchPlaceholder="Kod veya mesaj arayın..."
-                noResultsMessage="Sonuç bulunamadı."
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Provider hatasını standart bir HB hatası ile eşleştirebilirsiniz.
-              </p>
-            </div>
-          )}
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Kategori *
-            </label>
-            <select
-              value={formData.categoryId}
-              onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.categoryId ? 'border-red-300' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Seçiniz...</option>
-              {categories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            {errors.categoryId && (
-              <p className="mt-1 text-sm text-red-600">{errors.categoryId}</p>
-            )}
-          </div>
-
           {/* Internal Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               İç Notlar
             </label>
             <textarea
-              value={formData.internalNotes}
+              value={formData.internalNotes || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, internalNotes: e.target.value }))}
               placeholder="Dahili notlar ve açıklamalar"
               rows={2}
@@ -333,15 +239,15 @@ const ErrorMappingModal: React.FC<ErrorMappingModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              disabled={loading || !selectedHbCode}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {mapping ? 'Güncelle' : 'Kaydet'}
+              {mapping?.id ? 'Güncelle' : 'Kaydet'}
             </button>
           </div>
         </form>
