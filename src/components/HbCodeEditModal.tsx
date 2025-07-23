@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertTriangle } from 'lucide-react';
-import { HBErrorCode, ErrorCategory } from '../types';
+import { HBErrorCode } from '../types';
 
 interface HbCodeEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updatedHbCode: HBErrorCode) => void;
   hbCode: HBErrorCode | null;
-  categories: ErrorCategory[];
 }
 
 const HbCodeEditModal: React.FC<HbCodeEditModalProps> = ({
@@ -15,11 +14,9 @@ const HbCodeEditModal: React.FC<HbCodeEditModalProps> = ({
   onClose,
   onSave,
   hbCode,
-  categories,
 }) => {
   const [formData, setFormData] = useState({
     hbErrorMessage: '',
-    categoryId: '',
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -27,7 +24,6 @@ const HbCodeEditModal: React.FC<HbCodeEditModalProps> = ({
     if (hbCode) {
       setFormData({
         hbErrorMessage: hbCode.hbErrorMessage,
-        categoryId: hbCode.categoryId,
       });
       setErrors({});
     }
@@ -41,9 +37,6 @@ const HbCodeEditModal: React.FC<HbCodeEditModalProps> = ({
     const newErrors: { [key: string]: string } = {};
     if (!formData.hbErrorMessage.trim()) {
       newErrors.hbErrorMessage = 'Hata mesajı boş bırakılamaz.';
-    }
-    if (!formData.categoryId) {
-      newErrors.categoryId = 'Kategori seçimi zorunludur.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -103,28 +96,7 @@ const HbCodeEditModal: React.FC<HbCodeEditModalProps> = ({
             {errors.hbErrorMessage && <p className="text-xs text-red-500 mt-1">{errors.hbErrorMessage}</p>}
           </div>
 
-          <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">
-              Kategori
-            </label>
-            <select
-              id="categoryId"
-              name="categoryId"
-              value={formData.categoryId}
-              onChange={handleChange}
-              className={`mt-1 w-full px-3 py-2 border rounded-lg ${
-                errors.categoryId ? 'border-red-500' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Kategori Seçin</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-            {errors.categoryId && <p className="text-xs text-red-500 mt-1">{errors.categoryId}</p>}
-          </div>
+
         </div>
 
         <div className="flex items-center justify-end p-4 border-t bg-gray-50">
