@@ -116,20 +116,68 @@ export default function AdminLayout() {
 
           {/* Kullanıcı Yönetimi */}
           {!isCollapsed && (
-            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide flex items-center">
               Kullanıcı Yönetimi
+              {!isFraudFeaturesEnabled() && (
+                <span className="ml-2 text-xs bg-yellow-600 text-yellow-100 px-2 py-0.5 rounded-full">
+                  Faz 3
+                </span>
+              )}
             </div>
           )}
-          <NavLink 
-            to="/admin/users" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-            }
-            title={isCollapsed ? 'Admin Kullanıcıları' : ''}
-          >
-            <Users className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Admin Kullanıcıları</span>}
-          </NavLink>
+          
+          {isFraudFeaturesEnabled() ? (
+            <>
+              <NavLink 
+                to="/admin/users" 
+                className={({ isActive }) => 
+                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+                }
+                title={isCollapsed ? 'Admin Kullanıcıları' : ''}
+              >
+                <Users className="h-4 w-4" />
+                {!isCollapsed && <span className="ml-3">Admin Kullanıcıları</span>}
+              </NavLink>
+              <NavLink 
+                to="/admin/roles" 
+                className={({ isActive }) => 
+                  `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+                }
+                title={isCollapsed ? 'Rol Yönetimi' : ''}
+              >
+                <Shield className="h-4 w-4" />
+                {!isCollapsed && <span className="ml-3">Rol Yönetimi</span>}
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <div
+                className={`flex items-center px-4 py-1.5 text-sm text-gray-400 cursor-not-allowed ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? 'Admin Kullanıcıları (Faz 3)' : ''}
+              >
+                <Users className="h-4 w-4" />
+                {!isCollapsed && (
+                  <span className="ml-3 flex items-center">
+                    Admin Kullanıcıları
+                    <Lock className="h-3 w-3 ml-2" />
+                  </span>
+                )}
+              </div>
+              <div
+                className={`flex items-center px-4 py-1.5 text-sm text-gray-400 cursor-not-allowed ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? 'Rol Yönetimi (Faz 3)' : ''}
+              >
+                <Shield className="h-4 w-4" />
+                {!isCollapsed && (
+                  <span className="ml-3 flex items-center">
+                    Rol Yönetimi
+                    <Lock className="h-3 w-3 ml-2" />
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+          
           <NavLink 
             to="/admin/merchant-users" 
             className={({ isActive }) => 
@@ -139,16 +187,6 @@ export default function AdminLayout() {
           >
             <Building2 className="h-4 w-4" />
             {!isCollapsed && <span className="ml-3">Üye İşyerleri</span>}
-          </NavLink>
-          <NavLink 
-            to="/admin/roles" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-            }
-            title={isCollapsed ? 'Rol Yönetimi' : ''}
-          >
-            <Shield className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Rol Yönetimi</span>}
           </NavLink>
           <NavLink 
             to="/admin/audit-logs" 

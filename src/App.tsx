@@ -49,9 +49,17 @@ function App() {
           <Route path="stored-card-settlement" element={<StoredCardSettlementTable />} />
           <Route path="stored-card-monthly" element={<StoredCardMonthlyTable />} />
           <Route path="communication-templates" element={<CommunicationTemplates />} />
-          <Route path="users" element={<UserManagement />} />
+          <Route path="users" element={
+            <ProtectedRoute requireFraudFeature={true}>
+              <UserManagement />
+            </ProtectedRoute>
+          } />
           <Route path="merchant-users" element={<MerchantUserManagement />} />
-          <Route path="roles" element={<RoleManagement />} />
+          <Route path="roles" element={
+            <ProtectedRoute requireFraudFeature={true}>
+              <RoleManagement />
+            </ProtectedRoute>
+          } />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="pos-error-management" element={<POSErrorManagement />} />
           <Route path="parameter-definitions" element={
