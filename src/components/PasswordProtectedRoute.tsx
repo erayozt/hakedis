@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const PasswordProtectedRoute = ({ children, password }: { children: React.ReactNode; password?: string }) => {
   // Production ortamı değilse veya şifre belirtilmemişse, korumayı direkt geç
-  if (import.meta.env.VITE_NODE_ENV !== 'production' || !password) {
+  if (import.meta.env.MODE !== 'production' || !password) {
     return <>{children}</>;
   }
 
