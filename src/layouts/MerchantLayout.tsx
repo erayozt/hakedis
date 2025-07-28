@@ -1,34 +1,63 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, BarChart2, FileText, Settings, LogOut, ChevronRight, Building, Wallet, CreditCard, Gift, Shield } from 'lucide-react';
+import { Home, BarChart2, FileText, Wallet, CreditCard, Calendar, LogOut } from 'lucide-react';
+
+const menuItems = [
+  {
+    section: 'Ana Menü',
+    items: [
+      { to: '/merchant/dashboard', icon: Home, label: 'Kontrol Paneli' },
+      { to: '/merchant/reports', icon: BarChart2, label: 'Ödeme Raporları' },
+    ],
+  },
+  {
+    section: 'Hakediş ve Mutabakat',
+    items: [
+      { to: '/merchant/wallet-settlement', icon: Wallet, label: 'Cüzdan Hakediş' },
+      { to: '/merchant/wallet-daily', icon: Calendar, label: 'Cüzdan Günsonu' },
+      { to: '/merchant/stored-card-settlement', icon: CreditCard, label: 'Saklı Kart Hakediş' },
+      { to: '/merchant/stored-card-monthly', icon: Calendar, label: 'Saklı Kart Aysonu' },
+    ],
+  },
+  {
+    section: 'Finansal Yönetim',
+    items: [
+      { to: '/merchant/receipts', icon: FileText, label: 'Dekontlar' },
+      { to: '/merchant/statements', icon: FileText, label: 'Ekstreler' },
+    ],
+  },
+];
 
 const MerchantLayout = () => {
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-800 text-white flex flex-col">
-        <div className="p-6 text-2xl font-bold border-b border-gray-700">
-          Hepsipay Merchant
+      <aside className="w-64 bg-gray-900 text-gray-200 flex flex-col flex-shrink-0">
+        <div className="h-16 flex items-center justify-center bg-gray-900 border-b border-gray-800">
+          <h1 className="text-xl font-bold text-white tracking-wider">Hepsipay</h1>
         </div>
-        <nav className="flex-grow p-4 space-y-2">
-          <NavLink to="/merchant/dashboard" className={({ isActive }) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`}>
-            <Home className="h-5 w-5 mr-3" />
-            Kontrol Paneli
-          </NavLink>
-          <NavLink to="/merchant/reports" className={({ isActive }) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`}>
-            <BarChart2 className="h-5 w-5 mr-3" />
-            Ödeme Raporları
-          </NavLink>
-          <NavLink to="/merchant/receipts" className={({ isActive }) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`}>
-            <FileText className="h-5 w-5 mr-3" />
-            Dekontlar
-          </NavLink>
-           <NavLink to="/merchant/statements" className={({ isActive }) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`}>
-            <Wallet className="h-5 w-5 mr-3" />
-            Ekstreler
-          </NavLink>
+        <nav className="flex-grow px-2 py-4 space-y-4">
+          {menuItems.map((menu) => (
+            <div key={menu.section}>
+              <h2 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{menu.section}</h2>
+              {menu.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                      isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <item.icon className="h-5 w-5 mr-3" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          ))}
         </nav>
-        <div className="p-4 border-t border-gray-700">
-          <button className="flex items-center w-full px-4 py-2.5 rounded-lg hover:bg-gray-700">
+        <div className="p-4 border-t border-gray-800">
+          <button className="flex items-center w-full px-4 py-2.5 rounded-md text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
             <LogOut className="h-5 w-5 mr-3" />
             Çıkış Yap
           </button>
