@@ -39,7 +39,16 @@ export default function MerchantLayout() {
             }
           >
             <BarChart3 className="h-5 w-5 mr-3" />
-            Dashboard
+            Kontrol Paneli
+          </NavLink>
+          <NavLink 
+            to="/merchant/reports" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-2 ${isActive ? 'bg-green-900' : 'hover:bg-green-700'}`
+            }
+          >
+            <FileText className="h-5 w-5 mr-3" />
+            Ödeme Raporları
           </NavLink>
           
           <div className="px-4 mt-6 mb-2 text-xs font-semibold text-green-300 uppercase">

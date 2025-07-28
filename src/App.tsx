@@ -26,6 +26,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Merchant Panel Bileşenleri
 import MerchantLayout from './layouts/MerchantLayout';
 import MerchantDashboard from './pages/merchant/Dashboard';
+import PaymentReports from './pages/merchant/PaymentReports';
 import MerchantWalletSettlementTable from './pages/merchant/WalletSettlementTable';
 import MerchantWalletDailyTable from './pages/merchant/WalletDailyTable';
 import MerchantStoredCardSettlementTable from './pages/merchant/StoredCardSettlementTable';
@@ -84,6 +85,7 @@ function App() {
         {/* Merchant Panel Routes */}
         <Route path="/merchant" element={<MerchantLayout />}>
           <Route path="dashboard" element={<MerchantDashboard />} />
+          <Route path="reports" element={<PaymentReports />} />
           <Route path="wallet-settlement" element={<MerchantWalletSettlementTable />} />
           <Route path="wallet-daily" element={<MerchantWalletDailyTable />} />
           <Route path="stored-card-settlement" element={<MerchantStoredCardSettlementTable />} />
