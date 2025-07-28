@@ -22,6 +22,7 @@ import RuleBuilder from "./pages/admin/RuleBuilder"; // Kural oluşturucu sayfas
 import RuleTemplates from "./pages/admin/RuleTemplates"; // Kural şablonları sayfası
 import { isFraudFeaturesEnabled } from "./utils/environment";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
 // Merchant Panel Bileşenleri
 import MerchantLayout from './layouts/MerchantLayout';
@@ -84,8 +85,17 @@ function App() {
         
         {/* Merchant Panel Routes */}
         <Route path="/merchant" element={<MerchantLayout />}>
-          <Route path="dashboard" element={<MerchantDashboard />} />
-          <Route path="reports" element={<PaymentReports />} />
+          <Route index element={<Navigate to="dashboard" />} />
+          <Route path="dashboard" element={
+            <PasswordProtectedRoute password={import.meta.env.VITE_DASHBOARD_PASSWORD || '2605'}>
+              <MerchantDashboard />
+            </PasswordProtectedRoute>
+          } />
+          <Route path="reports" element={
+            <PasswordProtectedRoute password={import.meta.env.VITE_DASHBOARD_PASSWORD || '2605'}>
+              <PaymentReports />
+            </PasswordProtectedRoute>
+          } />
           <Route path="wallet-settlement" element={<MerchantWalletSettlementTable />} />
           <Route path="wallet-daily" element={<MerchantWalletDailyTable />} />
           <Route path="stored-card-settlement" element={<MerchantStoredCardSettlementTable />} />
