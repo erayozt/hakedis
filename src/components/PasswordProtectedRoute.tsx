@@ -33,7 +33,7 @@ const PasswordProtectedRoute = ({ children, password }: { children: React.ReactN
 
   // Yetkilendirilmemişse, şifre formunu göster
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
+    <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl text-center">
         <h2 className="text-xl font-bold mb-4 text-gray-800">Bu Alan Korumalıdır</h2>
         <p className="text-gray-600 mb-6">Lütfen devam etmek için şifreyi girin.</p>
