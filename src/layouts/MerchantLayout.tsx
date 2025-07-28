@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Home, BarChart2, FileText, Wallet, CreditCard, Calendar, LogOut } from 'lucide-react';
 
 const menuItems = [
@@ -28,6 +28,13 @@ const menuItems = [
 ];
 
 const MerchantLayout = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Burada normalde session temizleme işlemleri de yapılır.
+    navigate('/');
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
@@ -57,7 +64,10 @@ const MerchantLayout = () => {
           ))}
         </nav>
         <div className="p-4 border-t border-gray-800">
-          <button className="flex items-center w-full px-4 py-2.5 rounded-md text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-2.5 rounded-md text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white"
+          >
             <LogOut className="h-5 w-5 mr-3" />
             Çıkış Yap
           </button>
