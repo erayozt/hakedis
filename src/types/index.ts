@@ -166,6 +166,24 @@ export interface ErrorMapping {
   lastModifiedBy: string;
 }
 
+// YENİ FRAUD & GÜVENLİK YAPISI
+export type FraudRuleParameter = 'tutar';
+export type FraudRuleOperator = '<' | '<=' | '==' | '>=' | '>';
+export type FraudRuleAction = 'force_3d' | 'process_non_3d' | 'reject';
+
+export interface FraudRule {
+  id: string;
+  merchantId: string;
+  parameter: FraudRuleParameter;
+  operator: FraudRuleOperator;
+  value: number; // Şimdilik sadece sayısal değerler için
+  action: FraudRuleAction;
+  reason: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ErrorLog {
   id: string;
   errorMappingId?: string;

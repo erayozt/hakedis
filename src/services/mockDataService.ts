@@ -11,9 +11,10 @@ const getMonthName = (month: number): string => {
 const merchants = [
   {
     id: 'M1001',
-    name: 'ABC Elektronik Ltd. Şti.',
+    merchantNumber: 'MER001001',
+    merchantName: 'ABC Elektronik Ltd. Şti.',
     title: 'ABC Elektronik Ticaret A.Ş.',
-    type: 'KA', // Kurumsal
+    merchantType: 'KA' as const, // Kurumsal
     iban: 'TR12 3456 7890 1234 5678 9012 34',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,5',
@@ -25,13 +26,16 @@ const merchants = [
     createdAt: '2022-01-15',
     email: 'finans@abcelektronik.com',
     phone: '+90 212 555 1234',
-    address: 'Maslak Mah. Büyükdere Cad. No:123 Sarıyer/İstanbul'
+    address: 'Maslak Mah. Büyükdere Cad. No:123 Sarıyer/İstanbul',
+    otpType: 'mail' as const,
+    otpTypeExpiresAt: null
   },
   {
     id: 'M1002',
-    name: 'Moda Butik A.Ş.',
+    merchantNumber: 'MER001002',
+    merchantName: 'Moda Butik A.Ş.',
     title: 'Moda Butik Tekstil A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR98 7654 3210 9876 5432 1098 76',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,8',
@@ -43,13 +47,16 @@ const merchants = [
     createdAt: '2022-02-20',
     email: 'muhasebe@modabutik.com',
     phone: '+90 212 555 5678',
-    address: 'Nişantaşı Mah. Teşvikiye Cad. No:45 Şişli/İstanbul'
+    address: 'Nişantaşı Mah. Teşvikiye Cad. No:45 Şişli/İstanbul',
+    otpType: 'sms' as const,
+    otpTypeExpiresAt: null
   },
   {
     id: 'M1003',
-    name: 'Kitap Dünyası',
+    merchantNumber: 'MER001003',
+    merchantName: 'Kitap Dünyası',
     title: 'Kitap Dünyası Yayıncılık Ltd. Şti.',
-    type: 'SME', // KOBİ
+    merchantType: 'SME' as const, // KOBİ
     iban: 'TR45 6789 0123 4567 8901 2345 67',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,0',
@@ -61,13 +68,16 @@ const merchants = [
     createdAt: '2022-03-10',
     email: 'info@kitapdunyasi.com',
     phone: '+90 216 555 9012',
-    address: 'Bağdat Cad. No:78 Kadıköy/İstanbul'
+    address: 'Bağdat Cad. No:78 Kadıköy/İstanbul',
+    otpType: 'none' as const,
+    otpTypeExpiresAt: null
   },
   {
     id: 'M1004',
-    name: 'Spor Malzemeleri A.Ş.',
+    merchantNumber: 'MER001004',
+    merchantName: 'Spor Malzemeleri A.Ş.',
     title: 'Spor Malzemeleri Ticaret A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR32 1098 7654 3210 9876 5432 10',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,6',
@@ -83,9 +93,10 @@ const merchants = [
   },
   {
     id: 'M1005',
-    name: 'Organik Market',
+    merchantNumber: 'MER001005',
+    merchantName: 'Organik Market',
     title: 'Organik Gıda Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR76 5432 1098 7654 3210 9876 54',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,2',
@@ -101,9 +112,10 @@ const merchants = [
   },
   {
     id: 'M1006',
-    name: 'Teknoloji Merkezi',
+    merchantNumber: 'MER001006',
+    merchantName: 'Teknoloji Merkezi',
     title: 'Teknoloji Merkezi Bilişim A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR21 0987 6543 2109 8765 4321 09',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,4',
@@ -119,9 +131,10 @@ const merchants = [
   },
   {
     id: 'M1007',
-    name: 'Bebek Ürünleri',
+    merchantNumber: 'MER001007',
+    merchantName: 'Bebek Ürünleri',
     title: 'Bebek Ürünleri Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR65 4321 0987 6543 2109 8765 43',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,1',
@@ -137,9 +150,10 @@ const merchants = [
   },
   {
     id: 'M1008',
-    name: 'Mobilya Dünyası',
+    merchantNumber: 'MER001008',
+    merchantName: 'Mobilya Dünyası',
     title: 'Mobilya Dünyası Ticaret A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR10 9876 5432 1098 7654 3210 98',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,7',
@@ -155,9 +169,10 @@ const merchants = [
   },
   {
     id: 'M1009',
-    name: 'Kozmetik Mağazası',
+    merchantNumber: 'MER001009',
+    merchantName: 'Kozmetik Mağazası',
     title: 'Kozmetik Ürünleri Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR54 3210 9876 5432 1098 7654 32',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,3',
@@ -173,9 +188,10 @@ const merchants = [
   },
   {
     id: 'M1010',
-    name: 'Oyuncak Dükkanı',
+    merchantNumber: 'MER001010',
+    merchantName: 'Oyuncak Dükkanı',
     title: 'Oyuncak Dükkanı Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR43 2109 8765 4321 0987 6543 21',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,0',
@@ -192,9 +208,10 @@ const merchants = [
   // 10 merchant daha ekleyelim
   {
     id: 'M1011',
-    name: 'Ev Dekorasyon',
+    merchantNumber: 'MER001011',
+    merchantName: 'Ev Dekorasyon',
     title: 'Ev Dekorasyon Ürünleri A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR32 1098 7654 3210 9876 5432 11',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,5',
@@ -210,9 +227,10 @@ const merchants = [
   },
   {
     id: 'M1012',
-    name: 'Spor Giyim',
+    merchantNumber: 'MER001012',
+    merchantName: 'Spor Giyim',
     title: 'Spor Giyim Tekstil Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR76 5432 1098 7654 3210 9876 55',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,2',
@@ -228,9 +246,10 @@ const merchants = [
   },
   {
     id: 'M1013',
-    name: 'Bilgisayar Dünyası',
+    merchantNumber: 'MER001013',
+    merchantName: 'Bilgisayar Dünyası',
     title: 'Bilgisayar Dünyası Bilişim A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR21 0987 6543 2109 8765 4321 10',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,6',
@@ -246,9 +265,10 @@ const merchants = [
   },
   {
     id: 'M1014',
-    name: 'Mutfak Gereçleri',
+    merchantNumber: 'MER001014',
+    merchantName: 'Mutfak Gereçleri',
     title: 'Mutfak Gereçleri Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR65 4321 0987 6543 2109 8765 44',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,1',
@@ -264,9 +284,10 @@ const merchants = [
   },
   {
     id: 'M1015',
-    name: 'Bahçe Market',
+    merchantNumber: 'MER001015',
+    merchantName: 'Bahçe Market',
     title: 'Bahçe Market Peyzaj Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR10 9876 5432 1098 7654 3210 99',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,0',
@@ -282,9 +303,10 @@ const merchants = [
   },
   {
     id: 'M1016',
-    name: 'Ofis Malzemeleri',
+    merchantNumber: 'MER001016',
+    merchantName: 'Ofis Malzemeleri',
     title: 'Ofis Malzemeleri Ticaret A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR54 3210 9876 5432 1098 7654 33',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,7',
@@ -300,9 +322,10 @@ const merchants = [
   },
   {
     id: 'M1017',
-    name: 'Sağlık Ürünleri',
+    merchantNumber: 'MER001017',
+    merchantName: 'Sağlık Ürünleri',
     title: 'Sağlık Ürünleri Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR43 2109 8765 4321 0987 6543 22',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,3',
@@ -318,9 +341,10 @@ const merchants = [
   },
   {
     id: 'M1018',
-    name: 'Hobi Malzemeleri',
+    merchantNumber: 'MER001018',
+    merchantName: 'Hobi Malzemeleri',
     title: 'Hobi Malzemeleri Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR32 1098 7654 3210 9876 5432 12',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,0',
@@ -336,9 +360,10 @@ const merchants = [
   },
   {
     id: 'M1019',
-    name: 'Gıda Market',
+    merchantNumber: 'MER001019',
+    merchantName: 'Gıda Market',
     title: 'Gıda Market Ticaret A.Ş.',
-    type: 'KA',
+    merchantType: 'KA' as const,
     iban: 'TR76 5432 1098 7654 3210 9876 56',
     paymentTerm: 'Ertesi Gün Ödeme',
     walletCommission: '%2,5',
@@ -354,9 +379,10 @@ const merchants = [
   },
   {
     id: 'M1020',
-    name: 'Evcil Hayvan Ürünleri',
+    merchantNumber: 'MER001020',
+    merchantName: 'Evcil Hayvan Ürünleri',
     title: 'Evcil Hayvan Ürünleri Ticaret Ltd. Şti.',
-    type: 'SME',
+    merchantType: 'SME' as const,
     iban: 'TR21 0987 6543 2109 8765 4321 11',
     paymentTerm: '2 Gün Valörlü Ödeme',
     walletCommission: '%3,2',
@@ -370,7 +396,11 @@ const merchants = [
     phone: '+90 216 555 3456',
     address: 'Kartal Mah. Ankara Cad. No:56 Kartal/İstanbul'
   }
-];
+].map(merchant => ({
+  ...merchant,
+  otpType: merchant.otpType || ('mail' as const),
+  otpTypeExpiresAt: merchant.otpTypeExpiresAt || null
+}));
 
 // Paket bilgileri
 const packages = [

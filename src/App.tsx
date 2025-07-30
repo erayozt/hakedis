@@ -16,11 +16,7 @@ import MerchantUserManagement from './pages/admin/MerchantUserManagement';
 import RoleManagement from './pages/admin/RoleManagement';
 import AuditLogs from './pages/admin/AuditLogs';
 import POSErrorManagement from './pages/admin/POSErrorManagement';
-
-import ParameterDefinitions from "./pages/admin/ParameterDefinitions"; // Parametre tanımları sayfası
-import RuleBuilder from "./pages/admin/RuleBuilder"; // Kural oluşturucu sayfası
-import RuleTemplates from "./pages/admin/RuleTemplates"; // Kural şablonları sayfası
-import { isFraudFeaturesEnabled } from "./utils/environment";
+import FraudRuleManagement from './pages/admin/FraudRuleManagement'; // Yeni sayfa import edildi
 import ProtectedRoute from "./components/ProtectedRoute";
 import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
@@ -64,19 +60,11 @@ function App() {
           } />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="pos-error-management" element={<POSErrorManagement />} />
-          <Route path="parameter-definitions" element={
-            <ProtectedRoute requireFraudFeature={true}>
-              <ParameterDefinitions />
-            </ProtectedRoute>
-          } />
-          <Route path="rule-builder" element={
-            <ProtectedRoute requireFraudFeature={true}>
-              <RuleBuilder />
-            </ProtectedRoute>
-          } />
-          <Route path="rule-templates" element={
-            <ProtectedRoute requireFraudFeature={true}>
-              <RuleTemplates />
+          
+          {/* YENİ FRAUD ROTASI */}
+          <Route path="fraud-rule-management" element={
+            <ProtectedRoute requireFraudFeature={false}> {/* Şimdilik development için false */}
+              <FraudRuleManagement />
             </ProtectedRoute>
           } />
 
