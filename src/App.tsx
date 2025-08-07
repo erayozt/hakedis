@@ -6,17 +6,15 @@ import Architecture from './docs/Architecture';
 // Admin Panel Bileşenleri
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
-import WalletSettlementTable from './pages/admin/WalletSettlementTable';
-import WalletDailyTable from './pages/admin/WalletDailyTable';
+import WalletSettlementPage from './pages/admin/WalletSettlementTable';
 import StoredCardSettlementTable from './pages/admin/StoredCardSettlementTable';
-import StoredCardMonthlyTable from './pages/admin/StoredCardMonthlyTable';
 import CommunicationTemplates from './pages/admin/CommunicationTemplates';
 import UserManagement from './pages/admin/UserManagement';
 import MerchantUserManagement from './pages/admin/MerchantUserManagement';
 import RoleManagement from './pages/admin/RoleManagement';
 import AuditLogs from './pages/admin/AuditLogs';
 import POSErrorManagement from './pages/admin/POSErrorManagement';
-import FraudRuleManagement from './pages/admin/FraudRuleManagement'; // Yeni sayfa import edildi
+import FraudRuleManagement from './pages/admin/FraudRuleManagement';
 import ProtectedRoute from "./components/ProtectedRoute";
 import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
@@ -42,10 +40,8 @@ function App() {
         {/* Admin Panel Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="wallet-settlement" element={<WalletSettlementTable />} />
-          <Route path="wallet-daily" element={<WalletDailyTable />} />
+          <Route path="wallet-settlement" element={<WalletSettlementPage />} />
           <Route path="stored-card-settlement" element={<StoredCardSettlementTable />} />
-          <Route path="stored-card-monthly" element={<StoredCardMonthlyTable />} />
           <Route path="communication-templates" element={<CommunicationTemplates />} />
           <Route path="users" element={
             <ProtectedRoute requireFraudFeature={true}>
@@ -61,9 +57,8 @@ function App() {
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="pos-error-management" element={<POSErrorManagement />} />
           
-          {/* YENİ FRAUD ROTASI */}
           <Route path="fraud-rule-management" element={
-            <ProtectedRoute requireFraudFeature={false}> {/* Şimdilik development için false */}
+            <ProtectedRoute requireFraudFeature={false}>
               <FraudRuleManagement />
             </ProtectedRoute>
           } />

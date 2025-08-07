@@ -1,203 +1,118 @@
-import { useState } from 'react';
-import { Download } from 'lucide-react';
-import { format, subDays } from 'date-fns';
-import toast from 'react-hot-toast';
-import { exportToExcel } from '../../utils/exportToExcel';
+import { useState, useEffect } from 'react';
+import { format, subDays, addHours } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
-// Örnek veri üreteci
-const generateWalletDailyTransactions = () => {
-  const transactions = [];
-  const today = new Date();
+// Örnek veri üreteci - Sağlanan yeni kolonlara göre tamamen güncellendi
+const generateWalletDailyDetails = (settlementId: string) => {
+  const details = [];
+  const count = Math.floor(Math.random() * 20) + 5;
   
-  for (let i = 0; i < 90; i++) { // Son 3 ay için veri
-    const date = subDays(today, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
+  for (let i = 0; i < count; i++) {
+    const tutar = Math.random() * 500 + 10;
+    const isSatis = Math.random() > 0.15;
+    const is3D = Math.random() > 0.5;
+    const kartBankalari = ['Garanti', 'Akbank', 'İş Bankası', 'Yapı Kredi', 'Ziraat'];
+    const posBilgileri = ['Garanti POS', 'Akbank POS', 'İş Bankası POS'];
+    const kartTipleri = ['Kredi Kartı', 'Banka Kartı'];
+    const kartAileleri = ['Bonus', 'Maximum', 'World', 'Axess'];
+    const hataMesajlari = ['İşlem Başarıyla Gerçekleştirildi.', 'Yetersiz Bakiye', 'Hatalı Kart Bilgisi'];
     
-    // Her gün için 10-20 arası işlem oluştur
-    const transactionCount = Math.floor(Math.random() * 11) + 10;
-    
-    for (let j = 0; j < transactionCount; j++) {
-      const merchantId = `M${1000 + Math.floor(Math.random() * 10)}`;
-      const isRefund = Math.random() > 0.8; // %20 ihtimalle iade işlemi
-      const amount = Math.random() * 1000 + 50;
-      const commissionRate = 0.015 + (Math.random() * 0.01);
-      const commissionAmount = amount * commissionRate;
-      const bsmv = 0.05;
-      const bsmvAmount = commissionAmount * bsmv;
-      
-      transactions.push({
-        id: `TRX-${dateStr}-${j}`,
-        settlementId: `HAK-${dateStr}-${merchantId}`,
-        transactionDate: dateStr,
-        transactionTime: `${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-        merchant: {
-          merchantNumber: merchantId,
-          merchantName: `Üye İşyeri ${merchantId}`,
-          title: `${merchantId} Ticaret A.Ş.`,
-          merchantType: Math.random() > 0.5 ? 'SME' : 'KA'
-        },
-        amount: isRefund ? -amount : amount,
-        type: isRefund ? 'İade' : 'Satış',
-        status: 'Başarılı',
-        commissionRate: commissionRate,
-        commissionAmount: isRefund ? -commissionAmount : commissionAmount,
-        bsmv: bsmv,
-        bsmvAmount: isRefund ? -bsmvAmount : bsmvAmount,
-        netAmount: isRefund ? -(amount - commissionAmount - bsmvAmount) : (amount - commissionAmount - bsmvAmount)
-      });
-    }
+    details.push({
+      hakEdişID: settlementId,
+      işlemID: `3104a20f-c27b-40d1-9b93-${Math.random().toString(36).substring(2, 14)}`,
+      işlemTarihiSaati: format(addHours(subDays(new Date(), 1), i), 'dd.MM.yyyy HH:mm'),
+      üyeİşYeri: `1004 - Üye İşyeri M1004`,
+      siparişNo: `${Math.floor(Math.random() * 1000000000)}`,
+      üyeİşYeriSiparişNo: `U-${Math.floor(Math.random() * 1000)}`,
+      tutar: tutar,
+      taksit: 1,
+      komisyonTutarı: isSatis ? tutar * 0.02 : 0,
+      sabitÜcret: 0.00,
+      komisyonOranı: 2,
+      işlemTipi: isSatis ? 'Satış' : 'İade',
+      siparişDurumu: 'Cüzdan ile ödeme başarıyla tamamlandı.',
+      '3DileÖdeme': is3D ? 'Evet' : 'Hayır',
+      bankaStatüsü: '',
+      kartınBankası: kartBankalari[Math.floor(Math.random() * kartBankalari.length)],
+      posBilgisi: posBilgileri[Math.floor(Math.random() * posBilgileri.length)],
+      gönderilenPOSBilgisi: '',
+      kartSahibiİsmi: 'A*** B***',
+      kartNo: `5555 **** **** ${Math.floor(Math.random() * 9000) + 1000}`,
+      kartTipi: kartTipleri[Math.floor(Math.random() * kartTipleri.length)],
+      kartAilesi: kartAileleri[Math.floor(Math.random() * kartAileleri.length)],
+      ödemeTipi: 'Cüzdan',
+      kayıtlıKartMı: Math.random() > 0.5 ? 'Evet' : 'Hayır',
+      ödemeSağlayıcısı: 'Craftgate',
+      ödemeKanalı: ['iOSNative', 'AndroidNative', 'Web'][Math.floor(Math.random() * 3)],
+      hataGrubu: '0000',
+      hataMesajı: hataMesajlari[isSatis ? 0 : Math.floor(Math.random() * 2) + 1],
+    });
   }
-  
-  return transactions;
+  return details;
 };
 
-export default function WalletDailyTable() {
-  const [transactions, setTransactions] = useState(generateWalletDailyTransactions());
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  
-  // Son 90 gün için tarih seçenekleri oluştur
-  const getLastNinetyDays = () => {
-    const today = new Date();
-    const days = [];
-    
-    for (let i = 0; i < 90; i++) {
-      const date = subDays(today, i);
-      days.push({
-        value: format(date, 'yyyy-MM-dd'),
-        label: format(date, 'dd MMMM yyyy')
-      });
-    }
-    
-    return days;
-  };
-  
-  const lastNinetyDays = getLastNinetyDays();
-  
-  const handleExportExcel = () => {
-    const exportData = transactions
-      .filter(t => t.transactionDate === selectedDate)
-      .map(t => ({
-        'İşlem ID': t.id,
-        'Hakediş ID': t.settlementId,
-        'Üye İşyeri No': t.merchant.merchantNumber,
-        'Üye İşyeri Adı': t.merchant.merchantName,
-        'Unvan': t.merchant.title || '',
-        'İşlem Tarihi': t.transactionDate,
-        'İşlem Saati': t.transactionTime,
-        'İşlem Tipi': t.type,
-        'Tutar': Math.abs(t.amount).toFixed(2),
-        'Durum': t.status,
-        'Komisyon Oranı': `%${(t.commissionRate * 100).toFixed(2)}`,
-        'Komisyon Tutarı': Math.abs(t.commissionAmount).toFixed(2),
-        'BSMV': `%${(t.bsmv * 100).toFixed(2)}`,
-        'BSMV Tutarı': Math.abs(t.bsmvAmount).toFixed(2),
-        'Net Tutar': Math.abs(t.netAmount).toFixed(2)
-      }));
+interface WalletDailyTableProps {
+  settlementId: string;
+}
 
-    exportToExcel(exportData, `cuzdan_gunsonu_${selectedDate}`);
-    toast.success('Excel dosyası başarıyla indirildi');
-  };
+export default function WalletDailyTable({ settlementId }: WalletDailyTableProps) {
+  const [details, setDetails] = useState(generateWalletDailyDetails(settlementId));
+
+  useEffect(() => {
+    setDetails(generateWalletDailyDetails(settlementId));
+  }, [settlementId]);
+
+  if (!details.length) {
+    return <p className="text-center p-4 text-gray-500">Bu hakediş için detay bulunamadı.</p>;
+  }
+
+  const tableHeaders = [
+    'Hak Ediş ID', 'İşlem ID', 'İşlem Tarihi-Saati', 'Üye İş Yeri', 'Sipariş No', 'Üye İş Yeri Sipariş No', 'Tutar', 'Taksit', 'Komisyon Tutarı (BSMV Hariç)', 'Sabit Ücret', 'Komisyon Oranı (%)', 'İşlem Tipi', 'Sipariş Durumu', '3D ile Ödeme', 'Banka Statüsü', 'Kartın Bankası', 'POS Bilgisi', 'Gönderilen POS Bilgisi', 'Kart Sahibi İsmi', 'Kart No', 'Kart Tipi', 'Kart Ailesi', 'Ödeme Tipi', 'Kayıtlı Kart Mı?', 'Ödeme Sağlayıcısı', 'Ödeme Kanalı', 'Hata Grubu', 'Hata Mesajı'
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Cüzdan Günsonu Tablosu</h1>
-        <div className="flex items-center gap-4">
-          <select
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
-          >
-            {lastNinetyDays.map(day => (
-              <option key={day.value} value={day.value}>
-                {day.label}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Excel'e Aktar
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  İşlem ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Hakediş ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Üye İşyeri
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  İşlem Saati
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  İşlem Tipi
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tutar
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Komisyon
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  BSMV
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Net Tutar
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {transactions
-                .filter(t => t.transactionDate === selectedDate)
-                .map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.settlementId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.merchant.merchantName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.transactionTime}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`px-2 py-1 rounded-full ${transaction.type === 'İade' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                        {transaction.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {Math.abs(transaction.amount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {Math.abs(transaction.commissionAmount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {Math.abs(transaction.bsmvAmount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {Math.abs(transaction.netAmount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="overflow-x-auto">
+      <Table className="min-w-full">
+        <TableHeader>
+          <TableRow>
+            {tableHeaders.map(header => <TableHead key={header} className="whitespace-nowrap">{header}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {details.map((detail) => (
+            <TableRow key={detail.işlemID}>
+              <TableCell className="font-mono text-xs">{detail.hakEdişID}</TableCell>
+              <TableCell className="font-mono text-xs">{detail.işlemID}</TableCell>
+              <TableCell>{detail.işlemTarihiSaati}</TableCell>
+              <TableCell>{detail.üyeİşYeri}</TableCell>
+              <TableCell>{detail.siparişNo}</TableCell>
+              <TableCell>{detail.üyeİşYeriSiparişNo}</TableCell>
+              <TableCell className="text-right">{detail.tutar.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
+              <TableCell className="text-center">{detail.taksit}</TableCell>
+              <TableCell className="text-right">{detail.komisyonTutarı.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
+              <TableCell className="text-right">{detail.sabitÜcret.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
+              <TableCell className="text-center">{detail.komisyonOranı}</TableCell>
+              <TableCell>{detail.işlemTipi}</TableCell>
+              <TableCell>{detail.siparişDurumu}</TableCell>
+              <TableCell>{detail['3DileÖdeme']}</TableCell>
+              <TableCell>{detail.bankaStatüsü}</TableCell>
+              <TableCell>{detail.kartınBankası}</TableCell>
+              <TableCell>{detail.posBilgisi}</TableCell>
+              <TableCell>{detail.gönderilenPOSBilgisi}</TableCell>
+              <TableCell>{detail.kartSahibiİsmi}</TableCell>
+              <TableCell className="font-mono">{detail.kartNo}</TableCell>
+              <TableCell>{detail.kartTipi}</TableCell>
+              <TableCell>{detail.kartAilesi}</TableCell>
+              <TableCell>{detail.ödemeTipi}</TableCell>
+              <TableCell>{detail.kayıtlıKartMı}</TableCell>
+              <TableCell>{detail.ödemeSağlayıcısı}</TableCell>
+              <TableCell>{detail.ödemeKanalı}</TableCell>
+              <TableCell>{detail.hataGrubu}</TableCell>
+              <TableCell>{detail.hataMesajı}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

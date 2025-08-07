@@ -84,16 +84,6 @@ export default function AdminLayout() {
             {!isCollapsed && <span className="ml-3">Cüzdan Hakediş</span>}
           </NavLink>
           <NavLink 
-            to="/admin/wallet-daily" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-            }
-            title={isCollapsed ? 'Cüzdan Günlük' : ''}
-          >
-            <Calendar className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Cüzdan Günlük</span>}
-          </NavLink>
-          <NavLink 
             to="/admin/stored-card-settlement" 
             className={({ isActive }) => 
               `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
@@ -102,16 +92,6 @@ export default function AdminLayout() {
           >
             <CreditCard className="h-4 w-4" />
             {!isCollapsed && <span className="ml-3">Saklı Kart Hakediş</span>}
-          </NavLink>
-          <NavLink 
-            to="/admin/stored-card-monthly" 
-            className={({ isActive }) => 
-              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
-            }
-            title={isCollapsed ? 'Saklı Kart Aylık' : ''}
-          >
-            <Calendar className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3">Saklı Kart Aylık</span>}
           </NavLink>
 
           {/* Kullanıcı Yönetimi */}

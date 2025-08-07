@@ -167,22 +167,51 @@ export interface ErrorMapping {
 }
 
 // YENİ FRAUD & GÜVENLİK YAPISI
-export type FraudRuleParameter = 'tutar';
-export type FraudRuleOperator = '<' | '<=' | '==' | '>=' | '>';
+export type FraudRuleParameter =
+  | 'amount'
+  | 'cardType'
+  | 'cardCountry'
+  | 'hourOfDay'
+  | 'ipAddress'
+  | 'uniqueDeviceId';
+
+export type FraudRuleOperator =
+  // Sayısal operatörler
+  | '<'
+  | '<='
+  | '=='
+  | '>='
+  | '>'
+  // Dizi/string operatörleri
+  | 'in'
+  | 'notIn'
+  // Boolean/genel operatörler
+  | 'is'
+  | 'isNot'
+  // Aralık operatörleri
+  | 'between';
+
 export type FraudRuleAction = 'force_3d' | 'process_non_3d' | 'reject';
+
+export type FraudRuleValue =
+  | number // for amount
+  | string // for ipAddress, uniqueDeviceId
+  | string[] // for cardType, cardCountry
+  | boolean // for isForeign
+  | { start: string; end: string }; // for hourOfDay
 
 export interface FraudRule {
   id: string;
-  merchantId: string;
+  merchantId: string; // 'all' veya belirli bir merchantId
   parameter: FraudRuleParameter;
   operator: FraudRuleOperator;
-  value: number; // Şimdilik sadece sayısal değerler için
+  value: FraudRuleValue;
   action: FraudRuleAction;
-  reason: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface ErrorLog {
   id: string;
