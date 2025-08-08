@@ -8,7 +8,7 @@ const menuItems = [
     section: 'Ana Menü',
     items: [
       { to: '/merchant/dashboard', icon: Home, label: 'Kontrol Paneli' },
-      { to: '/merchant/reports', icon: BarChart2, label: 'Ödeme Raporları' },
+      { to: '/merchant/payment-reports', icon: BarChart2, label: 'Ödeme Raporları' },
     ],
   },
   {

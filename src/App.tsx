@@ -20,14 +20,18 @@ import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
 // Merchant Panel Bileşenleri
 import MerchantLayout from './layouts/MerchantLayout';
-import MerchantDashboard from './pages/merchant/Dashboard';
-import PaymentReports from './pages/merchant/PaymentReports';
+// import MerchantDashboard from './pages/merchant/Dashboard'; // Kaldırıldı
+// import PaymentReports from './pages/merchant/PaymentReports'; // Kaldırıldı
 import MerchantWalletSettlementTable from './pages/merchant/WalletSettlementTable';
 import MerchantWalletDailyTable from './pages/merchant/WalletDailyTable';
 import MerchantStoredCardSettlementTable from './pages/merchant/StoredCardSettlementTable';
 import MerchantStoredCardMonthlyTable from './pages/merchant/StoredCardMonthlyTable';
 import MerchantStatements from './pages/merchant/Statements';
 import Receipts from './pages/merchant/Receipts';
+
+// Yeni Dashboard'u import edeceğiz
+import Dashboard from './pages/merchant/Dashboard'; // Yeni sayfa
+import PaymentReports from './pages/merchant/PaymentReports'; // Yeni Rapor Sayfası
 
 function App() {
   return (
@@ -71,10 +75,10 @@ function App() {
           <Route index element={<Navigate to="dashboard" />} />
           <Route path="dashboard" element={
             <PasswordProtectedRoute password={import.meta.env.VITE_DASHBOARD_PASSWORD || '2605'}>
-              <MerchantDashboard />
+              <Dashboard />
             </PasswordProtectedRoute>
           } />
-          <Route path="reports" element={
+          <Route path="payment-reports" element={
             <PasswordProtectedRoute password={import.meta.env.VITE_DASHBOARD_PASSWORD || '2605'}>
               <PaymentReports />
             </PasswordProtectedRoute>
