@@ -67,6 +67,23 @@ export default function AdminLayout() {
             {!isCollapsed && <span className="ml-3">Dashboard</span>}
           </NavLink>
 
+          {/* Raporlar */}
+          {!isCollapsed && (
+            <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">
+              Raporlar
+            </div>
+          )}
+          <NavLink 
+            to="/admin/payment-reports" 
+            className={({ isActive }) => 
+              `flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'bg-blue-900' : 'hover:bg-blue-700'} ${isCollapsed ? 'justify-center' : ''}`
+            }
+            title={isCollapsed ? 'Ödeme Raporları' : ''}
+          >
+            <BarChart3 className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3">Ödeme Raporları</span>}
+          </NavLink>
+
           {/* Hakediş Yönetimi */}
           {!isCollapsed && (
             <div className="px-4 mt-4 mb-1 text-xs font-medium text-blue-300 uppercase tracking-wide">

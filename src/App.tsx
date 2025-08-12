@@ -6,6 +6,7 @@ import Architecture from './docs/Architecture';
 // Admin Panel Bileşenleri
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminPaymentReports from './pages/admin/PaymentReports';
 import WalletSettlementPage from './pages/admin/WalletSettlementTable';
 import StoredCardSettlementTable from './pages/admin/StoredCardSettlementTable';
 import CommunicationTemplates from './pages/admin/CommunicationTemplates';
@@ -45,6 +46,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="wallet-settlement" element={<WalletSettlementPage />} />
+          <Route path="payment-reports" element={<AdminPaymentReports />} />
           <Route path="stored-card-settlement" element={<StoredCardSettlementTable />} />
           <Route path="communication-templates" element={<CommunicationTemplates />} />
           <Route path="users" element={

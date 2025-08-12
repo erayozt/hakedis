@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
-import { subDays, format, eachDayOfInterval, startOfDay } from 'date-fns';
-import { Calendar as CalendarIcon, DollarSign, CreditCard, Users, CheckCircle, ShieldCheck, Lock } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { subDays, format, eachDayOfInterval, startOfDay, addDays, differenceInCalendarDays } from 'date-fns';
+import { Calendar as CalendarIcon, DollarSign, CreditCard, CheckCircle, Wallet, FileText, Bell, TrendingUp, Shield, AlertTriangle, ChevronRight } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
 import { cn } from "../../lib/utils"
 import { Button } from "../../components/ui/button"
@@ -28,12 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 
 // Gelişmiş Mock Veri Servisi
@@ -83,11 +77,11 @@ const generateMockTransactions = (dateRange: DateRange) => {
 
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("genel-performans");
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
   });
+  const navigate = useNavigate();
 
   const mockData = useMemo(() => {
     if (date && date.from && date.to) {
@@ -96,18 +90,19 @@ export default function Dashboard() {
     return [];
   }, [date]);
 
-  // KPI Metrikleri
-  const kpiMetrics = useMemo(() => {
+  // Temel metrikler
+  const baseMetrics = useMemo(() => {
     const totalTransactions = mockData.length;
     const successfulTransactions = mockData.filter(t => t.isSuccess);
     const totalVolume = successfulTransactions.reduce((sum, t) => sum + t.amount, 0);
     const successRate = totalTransactions > 0 ? (successfulTransactions.length / totalTransactions) * 100 : 0;
-    const uniqueUsers = new Set(mockData.map(t => t.userId)).size;
-
-    return { totalVolume, totalTransactions, successRate, newCustomers: uniqueUsers };
+    const averageBasket = successfulTransactions.length > 0 ? totalVolume / successfulTransactions.length : 0;
+    const uniqueUsers = new Set(mockData.map(t => t.userId)).size || 1;
+    const frequency = successfulTransactions.length / uniqueUsers;
+    return { totalVolume, totalTransactions, successRate, averageBasket, uniqueUsers, successfulOrders: successfulTransactions.length, frequency };
   }, [mockData]);
 
-  // Günlük Performans Grafiği verisi
+  // Günlük performans (başarı alan + ciro çizgisi)
   const dailyPerformanceData = useMemo(() => {
     if (!date || !date.from || !date.to) return [];
     const days = eachDayOfInterval({ start: date.from, end: date.to });
@@ -116,32 +111,12 @@ export default function Dashboard() {
       const dayTransactions = mockData.filter(t => startOfDay(t.date).getTime() === dayStart.getTime());
       const successfulCount = dayTransactions.filter(t => t.isSuccess).length;
       const successRate = dayTransactions.length > 0 ? (successfulCount / dayTransactions.length) * 100 : 0;
-      return { date: format(day, 'MMM dd'), "Başarı Oranı": parseFloat(successRate.toFixed(1)) };
+      const successVolume = dayTransactions.filter(t => t.isSuccess).reduce((sum, t) => sum + t.amount, 0);
+      return { date: format(day, 'MMM dd'), "Başarı Oranı": parseFloat(successRate.toFixed(1)), successVolume };
     });
   }, [mockData, date]);
-
-  // Karşılaştırmalı analizler için veri
-  const comparisonData = useMemo(() => {
-    const calcSuccessRate = (data: any[]) => data.length > 0 ? (data.filter(t => t.isSuccess).length / data.length) * 100 : 0;
-
-    const threeD = mockData.filter(t => t.is3D);
-    const nonThreeD = mockData.filter(t => !t.is3D);
-    const storedCard = mockData.filter(t => t.isStoredCard);
-    const newCard = mockData.filter(t => !t.isStoredCard);
-    const installment = mockData.filter(t => t.isInstallment);
-    const cash = mockData.filter(t => !t.isInstallment);
-
-    return {
-      secure: [{ name: '3D Secure', "Başarı Oranı": calcSuccessRate(threeD)}, { name: 'Non-3D', "Başarı Oranı": calcSuccessRate(nonThreeD) }],
-      card: [{ name: 'Kayıtlı Kart', "Başarı Oranı": calcSuccessRate(storedCard) }, { name: 'Yeni Kart', "Başarı Oranı": calcSuccessRate(newCard) }],
-      paymentType: [
-        { name: 'Peşin', "İşlem Adedi": cash.length, "Başarı Oranı": calcSuccessRate(cash) },
-        { name: 'Taksitli', "İşlem Adedi": installment.length, "Başarı Oranı": calcSuccessRate(installment) }
-      ]
-    };
-  }, [mockData]);
-
-  const bankAnalysisData = useMemo(() => {
+  // Banka ve hata özetleri
+  const analysis = useMemo(() => {
     const successRateByIssuer = mockData.reduce((acc, t) => {
       if (!acc[t.issuerBank]) {
         acc[t.issuerBank] = { total: 0, success: 0 };
@@ -190,51 +165,28 @@ export default function Dashboard() {
     return { successRateByIssuer: formattedSuccessRate, volumeByAcquirer: formattedVolumeByAcquirer, errorCodes: formattedErrorCodes };
   }, [mockData]);
 
-  const userAndTurnoverData = useMemo(() => {
-    // Yeni/Mevcut müşteri analizi için geçmiş veri simülasyonu
-    const previousPeriodStart = subDays(date?.from || new Date(), 30);
-    const previousPeriodTransactions = new Set(
-        generateMockTransactions({from: previousPeriodStart, to: subDays(date?.from || new Date(), 1)})
-        .map(t => t.userId)
-        .slice(0, Math.floor(kpiMetrics.newCustomers * 0.6)) // Mevcut müşterilerin bir kısmını simüle et
-    );
+  // Finans KPI’ları (beklenen ödeme, ekstre durumu, hakediş özeti)
+  const finance = useMemo(() => {
+    const today = new Date();
+    const expectedPaymentNextDay = Math.round(baseMetrics.totalVolume * 0.02);
+    const expectedPaymentCount = Math.round(baseMetrics.totalTransactions * 0.01);
+    const lastStatementAmount = Math.round(baseMetrics.totalVolume * 0.18);
+    const statementIssueDate = subDays(today, 5);
+    const statementDueDate = addDays(statementIssueDate, 10);
+    const daysToDue = differenceInCalendarDays(statementDueDate, today);
+    const walletSettlementAmount = Math.round(baseMetrics.totalVolume * 0.35);
+    const storedCardSettlementAmount = Math.round(baseMetrics.totalVolume * 0.22);
+    return { expectedPaymentNextDay, expectedPaymentCount, lastStatementAmount, statementDueDate, daysToDue, walletSettlementAmount, storedCardSettlementAmount };
+  }, [baseMetrics]);
 
-    const currentPeriodUsers = new Set(mockData.map(t => t.userId));
-    const newUsers = new Set([...currentPeriodUsers].filter(user => !previousPeriodTransactions.has(user)));
-    const existingUsers = new Set([...currentPeriodUsers].filter(user => previousPeriodTransactions.has(user)));
-    
-    const customerDistribution = [
-        { name: 'Yeni Müşteri', value: newUsers.size },
-        { name: 'Mevcut Müşteri', value: existingUsers.size },
-    ];
-
-    // Kart tipine göre ciro
-    const turnoverByCardType = mockData.filter(t => t.isSuccess).reduce((acc, t) => {
-        if(!acc[t.cardType]) {
-            acc[t.cardType] = 0;
-        }
-        acc[t.cardType] += t.amount;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const formattedTurnoverByCardType = Object.entries(turnoverByCardType).map(([name, value]) => ({name, value}));
-
-    // En çok harcama yapan müşteriler
-    const topCustomers = mockData.filter(t=> t.isSuccess).reduce((acc, t) => {
-        if(!acc[t.userId]) {
-            acc[t.userId] = 0;
-        }
-        acc[t.userId] += t.amount;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const formattedTopCustomers = Object.entries(topCustomers)
-    .map(([userId, totalAmount]) => ({ userId, totalAmount }))
-    .sort((a,b) => b.totalAmount - a.totalAmount)
-    .slice(0,5);
-
-    return { customerDistribution, turnoverByCardType: formattedTurnoverByCardType, topCustomers: formattedTopCustomers };
-  }, [mockData, date, kpiMetrics.newCustomers]);
+  // Operasyon ve risk özetleri
+  const ops = useMemo(() => {
+    const errorRate = 100 - baseMetrics.successRate;
+    const topIssuer = analysis.successRateByIssuer[0]?.name || '-';
+    const refundRate = Math.min(5, Math.max(0.5, (100 - baseMetrics.successRate) / 3));
+    const chargebackCount = Math.round(baseMetrics.totalTransactions * 0.002);
+    return { errorRate, topIssuer, refundRate, chargebackCount };
+  }, [analysis.successRateByIssuer, baseMetrics]);
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -254,268 +206,198 @@ export default function Dashboard() {
           </Popover>
         </div>
       </div>
-      
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Finans odaklı KPI'lar */}
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Hacim</CardTitle>
+            <CardTitle className="text-sm font-medium">Beklenen Ödeme (1 Gün)</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₺{kpiMetrics.totalVolume.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</div>
-            <p className="text-xs text-muted-foreground">Başarılı işlemlerin toplamı</p>
+            <div className="text-2xl font-bold">₺{finance.expectedPaymentNextDay.toLocaleString('tr-TR')}</div>
+            <p className="text-xs text-muted-foreground">{finance.expectedPaymentCount.toLocaleString('tr-TR')} tahsilat bekleniyor</p>
+            <div className="mt-2"><Button size="sm" variant="outline" onClick={()=>navigate('/merchant/wallet-settlement')}>Ödemeleri Gör</Button></div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Başarı Oranı</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Son Ekstre Durumu</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">%{kpiMetrics.successRate.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Genel başarı oranı</p>
+            <div className="text-2xl font-bold">₺{finance.lastStatementAmount.toLocaleString('tr-TR')}</div>
+            <p className="text-xs text-muted-foreground">Son ödeme: {format(finance.statementDueDate, 'dd MMM yyyy')} ({finance.daysToDue >= 0 ? `${finance.daysToDue} gün kaldı` : `${Math.abs(finance.daysToDue)} gün gecikti`})</p>
+            <div className="mt-2"><Button size="sm" variant="outline" onClick={()=>navigate('/merchant/statements')}>Ekstreye Git</Button></div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam İşlem</CardTitle>
+            <CardTitle className="text-sm font-medium">Hakediş Özeti</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xs text-gray-500 mb-1">Geçen ay</div>
+            <div className="text-sm">Cüzdan: <span className="font-semibold">₺{finance.walletSettlementAmount.toLocaleString('tr-TR')}</span></div>
+            <div className="text-sm">Saklı Kart: <span className="font-semibold">₺{finance.storedCardSettlementAmount.toLocaleString('tr-TR')}</span></div>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/wallet-settlement')}>Cüzdan</Button>
+              <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/stored-card-settlement')}>Saklı Kart</Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Frekans (Sipariş/Kullanıcı)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{baseMetrics.frequency.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{baseMetrics.successfulOrders.toLocaleString('tr-TR')} sipariş / {baseMetrics.uniqueUsers.toLocaleString('tr-TR')} kullanıcı</p>
+            <div className="mt-2"><Button size="sm" variant="outline" onClick={()=>navigate('/merchant/payment-reports')}>Raporlara Git</Button></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ortalama Sepet Tutarı</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpiMetrics.totalTransactions.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Tüm işlem denemeleri</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tekil Müşteri</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+{kpiMetrics.newCustomers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Bu periyotta işlem yapan</p>
+            <div className="text-2xl font-bold">₺{baseMetrics.averageBasket.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</div>
+            <p className="text-xs text-muted-foreground">Başarılı siparişlerde ortalama</p>
+            <div className="mt-2"><Button size="sm" variant="outline" onClick={()=>navigate('/merchant/payment-reports')}>Raporlara Git</Button></div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="genel-performans">Genel Performans</TabsTrigger>
-          <TabsTrigger value="banka-analizleri">Banka Analizleri</TabsTrigger>
-          <TabsTrigger value="kullanici-ciro">Kullanıcı & Ciro</TabsTrigger>
-        </TabsList>
+      {/* Bildirimler kaldırıldı: aşağıdaki özet grid içinde sağ tarafta gösterilecek */}
 
-        <TabsContent value="genel-performans" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
+
+      {/* Özet grafikler */}
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
+        <Card className="md:col-span-2 lg:col-span-2">
                 <CardHeader>
-                    <CardTitle>Günlük Başarı Oranı Trendi</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                   <ResponsiveContainer width="100%" height={350}>
-                        <LineChart data={dailyPerformanceData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `%${value}`} />
-                            <Tooltip formatter={(value: number) => [`${value.toFixed(2)}%`, "Başarı Oranı"]}/>
-                            <Legend />
-                            <Line type="monotone" dataKey="Başarı Oranı" stroke="#2563eb" strokeWidth={2} activeDot={{ r: 8 }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Peşin vs Taksitli</CardTitle>
-                 <CardDescription>İşlem adedi ve başarı oranı karşılaştırması.</CardDescription>
+            <CardTitle>Günlük Başarı Oranı ve Ciro</CardTitle>
+            <CardDescription>Son dönem performans özeti</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={comparisonData.paymentType}>
+            <ResponsiveContainer width="100%" height={320}>
+              <AreaChart data={dailyPerformanceData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                    <YAxis yAxisId="left" orientation="left" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `%${value}`}/>
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" tickFormatter={(v) => `%${v}`} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v)=>`₺${Number(v).toLocaleString('tr-TR',{maximumFractionDigits:0})}`} />
                     <Tooltip />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="İşlem Adedi" fill="#8884d8" />
-                    <Line yAxisId="right" type="monotone" dataKey="Başarı Oranı" stroke="#82ca9d" />
-                  </BarChart>
+                <Area yAxisId="left" type="monotone" dataKey="Başarı Oranı" stroke="#2563eb" fill="#2563eb" fillOpacity={0.2} />
+                <Line yAxisId="right" type="monotone" dataKey="successVolume" name="Ciro" stroke="#22c55e" strokeWidth={2} />
+              </AreaChart>
                 </ResponsiveContainer>
+            <div className="flex justify-end mt-3"><Button variant="outline" onClick={()=>navigate('/merchant/payment-reports')}>Raporlara Git</Button></div>
               </CardContent>
             </Card>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>3D Secure vs Non-3D</CardTitle>
-                    <CardDescription>Güvenlik tipine göre başarı oranı karşılaştırması.</CardDescription>
+        {/* Bildirimler - sağ sütunda dikey ve scrollable */}
+        <Card className="md:col-span-1 lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle>Bildirimler</CardTitle>
+            <CardDescription>Hızlı aksiyonlar</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={comparisonData.secure}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(value) => `%${value}`} />
-                      <Tooltip formatter={(value: number) => [`${value.toFixed(2)}%`, "Başarı Oranı"]}/>
-                      <Bar dataKey="Başarı Oranı" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Kayıtlı Kart vs Yeni Kart</CardTitle>
-                    <CardDescription>Kart saklama durumuna göre başarı oranı.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={comparisonData.card}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(value) => `%${value}`}/>
-                      <Tooltip formatter={(value: number) => [`${value.toFixed(2)}%`, "Başarı Oranı"]}/>
-                      <Bar dataKey="Başarı Oranı" fill="#10b981" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-            </Card>
+            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+              <div className="flex items-start justify-between bg-yellow-50 border border-yellow-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><AlertTriangle className="w-4 h-4 mt-0.5 text-yellow-600"/><div>
+                  <div className="text-sm font-medium">Ekstre son ödeme tarihi yaklaşıyor</div>
+                  <div className="text-xs text-gray-600">{format(finance.statementDueDate, 'dd MMM yyyy')} • {finance.daysToDue} gün</div>
+                </div></div>
+                <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/statements')}>Gör</Button>
+              </div>
+              <div className="flex items-start justify-between bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><Shield className="w-4 h-4 mt-0.5 text-blue-600"/><div>
+                  <div className="text-sm font-medium">Şifre geçerlilik süresi</div>
+                  <div className="text-xs text-gray-600">10 gün içinde dolacak</div>
+                </div></div>
+                <Button size="sm" variant="outline">Güncelle</Button>
+              </div>
+              <div className="flex items-start justify-between bg-green-50 border border-green-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><Bell className="w-4 h-4 mt-0.5 text-green-600"/><div>
+                  <div className="text-sm font-medium">Beklenen ödeme</div>
+                  <div className="text-xs text-gray-600">₺{finance.expectedPaymentNextDay.toLocaleString('tr-TR')}</div>
+                </div></div>
+                <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/wallet-settlement')}>Git</Button>
+              </div>
+              <div className="flex items-start justify-between bg-red-50 border border-red-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><AlertTriangle className="w-4 h-4 mt-0.5 text-red-600"/><div>
+                  <div className="text-sm font-medium">POS hata oranında artış</div>
+                  <div className="text-xs text-gray-600">Son 1 saatte +%1.8</div>
+                </div></div>
+                <Button size="sm" variant="outline" onClick={()=>navigate('/admin/pos-error-management')}>İncele</Button>
+              </div>
+              <div className="flex items-start justify-between bg-indigo-50 border border-indigo-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><FileText className="w-4 h-4 mt-0.5 text-indigo-600"/><div>
+                  <div className="text-sm font-medium">Yeni dekont oluşturuldu</div>
+                  <div className="text-xs text-gray-600">₺45.230,00 • 2 belge</div>
+                </div></div>
+                <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/statements')}>Aç</Button>
+              </div>
+              <div className="flex items-start justify-between bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><CheckCircle className="w-4 h-4 mt-0.5 text-emerald-600"/><div>
+                  <div className="text-sm font-medium">Komisyon ödemesi tamamlandı</div>
+                  <div className="text-xs text-gray-600">Bugün • 13:45</div>
+                </div></div>
+                <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/stored-card-settlement')}>Detay</Button>
+              </div>
+              <div className="flex items-start justify-between bg-orange-50 border border-orange-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><Bell className="w-4 h-4 mt-0.5 text-orange-600"/><div>
+                  <div className="text-sm font-medium">Yeni kampanya bildirimi</div>
+                  <div className="text-xs text-gray-600">3D oranını artırmaya yönelik öneri</div>
+                </div></div>
+                <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/payment-reports')}>Göz At</Button>
+              </div>
+              <div className="flex items-start justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                <div className="flex items-start gap-2"><Bell className="w-4 h-4 mt-0.5 text-slate-600"/><div>
+                  <div className="text-sm font-medium">Planlı bakım</div>
+                  <div className="text-xs text-gray-600">Bu gece 02:00-04:00 arasında kısa kesintiler</div>
+                </div></div>
+                <Button size="sm" variant="outline">Detay</Button>
+              </div>
           </div>
-        </TabsContent>
+                </CardContent>
+              </Card>
+          </div>
 
-        <TabsContent value="banka-analizleri" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-4">
-                <CardHeader>
-                  <CardTitle>Banka Bazında Başarı Oranları</CardTitle>
-                  <CardDescription>Kartı çıkaran bankalara göre işlem başarı oranları.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={bankAnalysisData.successRateByIssuer}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} angle={-45} textAnchor="end" height={60} />
-                      <YAxis tickFormatter={(value) => `%${value.toFixed(0)}`} />
-                      <Tooltip formatter={(value: number) => [`${value.toFixed(2)}%`, "Başarı Oranı"]}/>
-                      <Bar dataKey="Başarı Oranı" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="col-span-3">
-                <CardHeader>
-                  <CardTitle>Acquirer Bazında Hacim Dağılımı</CardTitle>
-                   <CardDescription>İşlem hacminin sanal POS'lara göre dağılımı.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={350}>
-                        <PieChart>
-                            <Pie data={bankAnalysisData.volumeByAcquirer} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} fill="#8884d8" label>
-                                {bankAnalysisData.volumeByAcquirer.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={['#8884d8', '#82ca9d', '#ffc658'][index % 3]} />
-                                ))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => `₺${value.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`} />
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </CardContent>
-              </Card>
-          </div>
+      {/* Risk & Operasyon Özeti - geniş kart */}
            <Card>
               <CardHeader>
-                <CardTitle>Sık Karşılaşılan Banka Hata Kodları</CardTitle>
-                <CardDescription>Seçilen periyotta en sık alınan 5 banka hata kodu ve açıklaması.</CardDescription>
+          <CardTitle>Risk & Operasyon Özeti</CardTitle>
+          <CardDescription>Başlıca metrikler</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Hata Kodu</TableHead>
-                      <TableHead>Açıklama</TableHead>
-                      <TableHead className="text-right">Adet</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bankAnalysisData.errorCodes.map((error) => (
-                      <TableRow key={error.code}>
-                        <TableCell className="font-medium">{error.code}</TableCell>
-                        <TableCell>{error.description}</TableCell>
-                        <TableCell className="text-right">{error.count}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="kullanici-ciro" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Yeni vs Mevcut Müşteri Dağılımı</CardTitle>
-                        <CardDescription>Seçilen periyottaki müşteri profili.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <PieChart>
-                                <Pie data={userAndTurnoverData.customerDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} fill="#8884d8" label>
-                                    {userAndTurnoverData.customerDistribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6'][index % 2]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip formatter={(value: number) => `${value.toLocaleString()} Müşteri`} />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Kart Tipine Göre Ciro Dağılımı</CardTitle>
-                        <CardDescription>Cironun kart tiplerine göre dağılımı.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={350}>
-                           <PieChart>
-                                <Pie data={userAndTurnoverData.turnoverByCardType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} fill="#8884d8" label>
-                                    {userAndTurnoverData.turnoverByCardType.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={['#ffc658', '#82ca9d', '#8884d8'][index % 3]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip formatter={(value: number) => `₺${value.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`} />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <div className="text-sm text-gray-600 mb-1">POS Hata Oranı</div>
+              <div className="text-2xl font-semibold mb-2">%{ops.errorRate.toFixed(2)}</div>
+              <div className="w-full h-2 bg-gray-200 rounded">
+                <div className="h-2 bg-red-500 rounded" style={{ width: `${Math.min(100, ops.errorRate)}%` }} />
+              </div>
             </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>En Yüksek Hacimli Müşteriler</CardTitle>
-                    <CardDescription>Seçilen periyotta en çok harcama yapan müşteriler.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Müşteri ID</TableHead>
-                                <TableHead className="text-right">Toplam Harcama</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {userAndTurnoverData.topCustomers.map((customer) => (
-                                <TableRow key={customer.userId}>
-                                    <TableCell className="font-medium">{customer.userId}</TableCell>
-                                    <TableCell className="text-right">₺{customer.totalAmount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+            <div>
+              <div className="text-sm text-gray-600 mb-1">En İyi Banka</div>
+              <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-green-50 text-green-700 text-sm font-medium">{ops.topIssuer}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 mb-1">İade Oranı</div>
+              <div className="text-2xl font-semibold">%{ops.refundRate.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 mb-1">Chargeback (Dönem)</div>
+              <div className="text-2xl font-semibold">{ops.chargebackCount}</div>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button size="sm" variant="outline" onClick={()=>navigate('/merchant/payment-reports')}>Banka Analizleri</Button>
+            <Button size="sm" variant="outline" onClick={()=>navigate('/admin/pos-error-management')}>POS Hataları</Button>
+          </div>
                 </CardContent>
             </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }
