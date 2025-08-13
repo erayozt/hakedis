@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
 import { subDays, format, eachDayOfInterval, startOfDay, addDays, differenceInCalendarDays } from 'date-fns';
-import { Calendar as CalendarIcon, DollarSign, CreditCard, CheckCircle, Wallet, FileText, Bell, TrendingUp, Shield, AlertTriangle, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, DollarSign, CreditCard, CheckCircle, Wallet, FileText, Bell, TrendingUp, Shield, AlertTriangle, ChevronRight, HelpCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
 import { cn } from "../../lib/utils"
@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { useNavigate } from "react-router-dom";
+  import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider, TooltipTrigger as UITooltipTrigger } from "../../components/ui/tooltip";
 
 // Gelişmiş Mock Veri Servisi
 const generateMockTransactions = (dateRange: DateRange) => {
@@ -56,6 +57,7 @@ const generateMockTransactions = (dateRange: DateRange) => {
   for (let i = 0; i < numTransactions; i++) {
     const transactionDate = new Date(from.getTime() + Math.random() * (to.getTime() - from.getTime()));
     const isSuccess = Math.random() < 0.92;
+    const isInstallment = Math.random() > 0.6;
     
     transactions.push({
       id: `txn_${i}`,
@@ -64,7 +66,8 @@ const generateMockTransactions = (dateRange: DateRange) => {
       isSuccess,
       is3D: Math.random() > 0.3,
       isStoredCard: Math.random() > 0.4,
-      isInstallment: Math.random() > 0.6,
+      isInstallment,
+      installmentCount: isInstallment ? (Math.floor(Math.random() * 11) + 2) : 1,
       issuerBank: banks[Math.floor(Math.random() * banks.length)],
       acquirer: acquirers[Math.floor(Math.random() * acquirers.length)],
       cardType: cardTypes[Math.floor(Math.random() * cardTypes.length)],
@@ -184,11 +187,21 @@ export default function Dashboard() {
     const errorRate = 100 - baseMetrics.successRate;
     const topIssuer = analysis.successRateByIssuer[0]?.name || '-';
     const refundRate = Math.min(5, Math.max(0.5, (100 - baseMetrics.successRate) / 3));
-    const chargebackCount = Math.round(baseMetrics.totalTransactions * 0.002);
-    return { errorRate, topIssuer, refundRate, chargebackCount };
-  }, [analysis.successRateByIssuer, baseMetrics]);
+    const installmentDist = mockData
+      .filter(t => t.isInstallment && (t as any).installmentCount >= 2)
+      .reduce((acc: Record<number, number>, t: any) => {
+        const k = t.installmentCount as number;
+        acc[k] = (acc[k] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+    const mostPreferredInstallment = Object.keys(installmentDist).length > 0
+      ? Number(Object.entries(installmentDist).sort((a, b) => b[1] - a[1])[0][0])
+      : undefined;
+    return { errorRate, topIssuer, refundRate, mostPreferredInstallment };
+  }, [analysis.successRateByIssuer, baseMetrics, mockData]);
 
   return (
+    <TooltipProvider>
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Kontrol Paneli</h2>
@@ -380,16 +393,32 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">En İyi Banka</div>
+              <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
+                <span>En İyi Banka</span>
+                <UITooltip>
+                  <UITooltipTrigger asChild>
+                    <span className="inline-flex cursor-default"><HelpCircle className="w-3.5 h-3.5 text-gray-400" /></span>
+                  </UITooltipTrigger>
+                  <UITooltipContent>Başarı oranına göre en iyi banka</UITooltipContent>
+                </UITooltip>
+              </div>
               <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-green-50 text-green-700 text-sm font-medium">{ops.topIssuer}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">İade Oranı</div>
+              <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
+                <span>İade Oranı</span>
+                <UITooltip>
+                  <UITooltipTrigger asChild>
+                    <span className="inline-flex cursor-default"><HelpCircle className="w-3.5 h-3.5 text-gray-400" /></span>
+                  </UITooltipTrigger>
+                  <UITooltipContent>İlgili döneme ait işlemlerdeki iade oranı</UITooltipContent>
+                </UITooltip>
+              </div>
               <div className="text-2xl font-semibold">%{ops.refundRate.toFixed(2)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Chargeback (Dönem)</div>
-              <div className="text-2xl font-semibold">{ops.chargebackCount}</div>
+              <div className="text-sm text-gray-600 mb-1">En Çok Tercih Edilen Taksit</div>
+              <div className="text-2xl font-semibold">{ops.mostPreferredInstallment ? `${ops.mostPreferredInstallment} Taksit` : '-'}</div>
             </div>
           </div>
           <div className="mt-4 flex gap-2">
@@ -399,5 +428,6 @@ export default function Dashboard() {
                 </CardContent>
             </Card>
     </div>
+    </TooltipProvider>
   )
 }
